@@ -24,5 +24,5 @@ public interface SuccessConstants {
   String TASK_CREATE_SUCCESS = "Task '{}' created for user {}";
 
   /** Success message when a task is deleted. */
-  String TASK_DELETE_SUCCESS = "Task deleted successfully: {}";
+  String TASK_DELETE_SUCCESS = "Task deleted successfully";
 }

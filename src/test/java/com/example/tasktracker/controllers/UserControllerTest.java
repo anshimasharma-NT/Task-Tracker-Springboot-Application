@@ -4,6 +4,8 @@ import com.example.tasktracker.constants.ErrorConstants;
 import com.example.tasktracker.dtos.in.UserRequestDto;
 import com.example.tasktracker.dtos.out.UserResponseDTo;
 import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.AuthenticationException;
+import com.example.tasktracker.exceptions.custom.UserNotFoundException;
 import com.example.tasktracker.mappers.UserMapper;
 import com.example.tasktracker.services.UserService;
 import com.example.tasktracker.validations.UserValidation;
@@ -15,16 +17,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for {@link UserController}.
- *
- * <p>This test class verifies the behavior of UserController endpoints
- * for registering and logging in users. All external dependencies
- * are mocked to isolate controller logic.</p>
- */
 class UserControllerTest {
 
   @InjectMocks
@@ -48,70 +43,72 @@ class UserControllerTest {
     MockitoAnnotations.openMocks(this);
 
     validUserRequest = new UserRequestDto("John Doe", "john@example.com", "password123");
+
     userEntity = User.builder()
             .id(1L)
             .name("John Doe")
             .email("john@example.com")
             .password("encodedPassword")
             .build();
+
     userResponseDto = new UserResponseDTo(1L, "John Doe", "john@example.com");
   }
 
-  /**
-   * Test successful user registration.
-   */
+  // ------------------- REGISTER -------------------
+
   @Test
   void registerShouldReturnCreatedWhenUserIsValid() {
-    // Arrange
     doNothing().when(userValidation).validateUserRegistration(validUserRequest);
     when(userMapper.toEntity(validUserRequest)).thenReturn(userEntity);
     when(userService.storeUserData(userEntity)).thenReturn(userEntity);
     when(userMapper.toResponseDto(userEntity)).thenReturn(userResponseDto);
 
-    // Act
-    ResponseEntity<?> response = userController.register(validUserRequest);
+    ResponseEntity<UserResponseDTo> response = userController.register(validUserRequest);
 
-    // Assert
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertEquals(userResponseDto, response.getBody());
     verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
     verify(userService, times(1)).storeUserData(userEntity);
   }
 
-  /**
-   * Test user registration when validation fails.
-   */
   @Test
-  void registerShouldReturnBadRequestWhenValidationFails() {
-    // Arrange
+  void registerShouldThrowUserNotFoundExceptionWhenUserServiceReturnsNull() {
+    doNothing().when(userValidation).validateUserRegistration(validUserRequest);
+    when(userMapper.toEntity(validUserRequest)).thenReturn(userEntity);
+    when(userService.storeUserData(userEntity)).thenReturn(null);
+
+    UserNotFoundException exception = assertThrows(UserNotFoundException.class, () ->
+            userController.register(validUserRequest));
+
+    assertEquals(ErrorConstants.ERROR_REGISTER_MESSAGE, exception.getMessage());
+    verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
+    verify(userService, times(1)).storeUserData(userEntity);
+  }
+
+  @Test
+  void registerShouldThrowValidationExceptionWhenValidationFails() {
     doThrow(new IllegalArgumentException("Invalid input"))
             .when(userValidation).validateUserRegistration(validUserRequest);
 
-    // Act
-    ResponseEntity<?> response = userController.register(validUserRequest);
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            userController.register(validUserRequest));
 
-    // Assert
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("Invalid input", response.getBody());
+    assertEquals("Invalid input", exception.getMessage());
     verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
     verify(userService, never()).storeUserData(any());
   }
 
-  /**
-   * Test user login success.
-   */
+  // ------------------- LOGIN -------------------
+
   @Test
   void loginShouldReturnOkWhenCredentialsAreValid() {
-    // Arrange
     doNothing().when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
     when(userService.getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword()))
             .thenReturn(userEntity);
     when(userMapper.toResponseDto(userEntity)).thenReturn(userResponseDto);
 
-    // Act
-    ResponseEntity<?> response = userController.login(validUserRequest);
+    ResponseEntity<UserResponseDTo> response = userController.login(validUserRequest);
 
-    // Assert
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(userResponseDto, response.getBody());
     verify(userValidation, times(1))
@@ -120,43 +117,31 @@ class UserControllerTest {
             .getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword());
   }
 
-  /**
-   * Test user login with invalid credentials.
-   */
   @Test
-  void loginShouldReturnUnauthorizedWhenCredentialsAreInvalid() {
-    // Arrange
+  void loginShouldThrowAuthenticationExceptionWhenUserNotFound() {
     doNothing().when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
     when(userService.getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword()))
             .thenReturn(null);
 
-    // Act
-    ResponseEntity<?> response = userController.login(validUserRequest);
+    AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
+            userController.login(validUserRequest));
 
-    // Assert
-    assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    assertEquals("Invalid email or password", response.getBody());
+    assertEquals(ErrorConstants.ERROR_LOGIN_MESSAGE, exception.getMessage());
     verify(userValidation, times(1))
             .validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
     verify(userService, times(1))
             .getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword());
   }
 
-  /**
-   * Test login when validation fails.
-   */
   @Test
-  void loginShouldReturnBadRequestWhenValidationFails() {
-    // Arrange
+  void loginShouldThrowValidationExceptionWhenValidationFails() {
     doThrow(new IllegalArgumentException("Invalid input"))
             .when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
 
-    // Act
-    ResponseEntity<?> response = userController.login(validUserRequest);
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            userController.login(validUserRequest));
 
-    // Assert
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("Invalid input", response.getBody());
+    assertEquals("Invalid input", exception.getMessage());
     verify(userValidation, times(1))
             .validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
     verify(userService, never()).getUserByEmailAndPassword(any(), any());

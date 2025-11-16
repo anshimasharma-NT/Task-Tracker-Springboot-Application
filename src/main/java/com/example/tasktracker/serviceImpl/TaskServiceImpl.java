@@ -43,6 +43,17 @@ public class TaskServiceImpl implements TaskService {
   }
 
   /**
+   * Fetches a task by its ID and associated user ID.
+   *
+   * @param taskId the ID of the task
+   * @param userId the ID of the user
+   * @return the Task if found, otherwise null
+   */
+  public Task getTaskByIdAndUser(Long taskId, Long userId) {
+    return (Task) taskRepository.findByIdAndUserId(taskId, userId).orElse(null);
+  }
+
+  /**
    * Marks a task as completed.
    *
    * <p>Only the owner of the task is allowed to mark it as completed.

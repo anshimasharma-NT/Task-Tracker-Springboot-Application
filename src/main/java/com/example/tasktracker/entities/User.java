@@ -55,11 +55,12 @@ public class User {
   /** User entity constructor
    * @param id the unique identifier of the user
    * @param email the email address of the user
-   * @param password the password of the user
+   * @param password the password for the user
    * */
-  public User(long id, String email, String password)
+  public User(long id, String name, String email, String password)
   {
     this.id = id;
+    this.name = name;
     this.email = email;
     this.password = password;
   }

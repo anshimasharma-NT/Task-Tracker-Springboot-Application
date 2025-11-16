@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 /**
  * Repository interface for managing {@link Task} entities.
@@ -46,4 +47,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
                                 @Param("dueDate") LocalDate dueDate,
                                 Pageable pageable);
 
+
+  /**
+   * Finds all tasks belonging to a specific user.
+   *
+   * @param userId the id of the user
+   * @param taskId the id of the task
+   * @return specific task of specific user
+   */
+  Optional<Object> findByIdAndUserId(Long taskId, Long userId);
 }

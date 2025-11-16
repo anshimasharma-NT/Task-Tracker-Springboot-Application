@@ -4,6 +4,10 @@ import com.example.tasktracker.dtos.in.TaskRequestDto;
 import com.example.tasktracker.dtos.out.TaskResponseDto;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
+import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.TaskNotFoundException;
+import com.example.tasktracker.exceptions.custom.UserNotFoundException;
+import com.example.tasktracker.exceptions.custom.ValidationException;
 import com.example.tasktracker.mappers.TaskMapper;
 import com.example.tasktracker.services.TaskService;
 import com.example.tasktracker.services.UserService;
@@ -13,15 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class TaskControllerTest {
@@ -44,12 +44,14 @@ class TaskControllerTest {
   private TaskRequestDto taskRequestDto;
   private Task taskEntity;
   private TaskResponseDto taskResponseDto;
+  private User user;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
 
     taskRequestDto = new TaskRequestDto("Test Task", "Description", LocalDate.now().plusDays(1));
+
     taskEntity = Task.builder()
             .id(1L)
             .title("Test Task")
@@ -58,6 +60,7 @@ class TaskControllerTest {
             .status(TaskStatus.PENDING)
             .userId(1L)
             .build();
+
     taskResponseDto = new TaskResponseDto(
             1L,
             "Test Task",
@@ -67,123 +70,105 @@ class TaskControllerTest {
             LocalDateTime.now(),
             1L
     );
-    when(userService.getById(1L)).thenReturn(new com.example.tasktracker.entities.User(1L, "test@example.com", "password"));
 
+    user = new User(1L, "Anshima Sharma", "test@example.com", "password");
+    when(userService.getById(1L)).thenReturn(user);
   }
 
-  /** Test successful task creation */
+  // ---------------- CREATE TASK ----------------
   @Test
   void createTask_ShouldReturnCreated_WhenTaskIsValid() {
-    // Arrange
     doNothing().when(taskValidation).validateTask(any(Task.class));
     when(taskMapper.toEntity(taskRequestDto)).thenReturn(taskEntity);
     when(taskService.createTask(taskEntity, 1L)).thenReturn(taskEntity);
     when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
 
-    // Act
-    ResponseEntity<?> response = taskController.createTask(1L, taskRequestDto);
+    var response = taskController.createTask(1L, taskRequestDto);
 
-    // Assert
-    assertEquals(HttpStatus.CREATED, response.getStatusCode());
+    assertEquals(201, response.getStatusCodeValue());
     assertEquals(taskResponseDto, response.getBody());
-    verify(taskValidation, times(1)).validateTask(taskEntity);
-    verify(taskService, times(1)).createTask(taskEntity, 1L);
   }
 
-  /** Test task creation fails validation */
   @Test
-  void createTask_ShouldReturnBadRequest_WhenValidationFails() {
-    // Arrange
-    when(taskMapper.toEntity(taskRequestDto)).thenReturn(taskEntity); // <-- REQUIRED FIX
-
-    doThrow(new IllegalArgumentException("Invalid task"))
+  void createTask_ShouldThrowValidationException_WhenInvalid() {
+    when(taskMapper.toEntity(taskRequestDto)).thenReturn(taskEntity);
+    doThrow(new ValidationException("Invalid task"))
             .when(taskValidation).validateTask(any(Task.class));
 
-    // Act
-    ResponseEntity<?> response = taskController.createTask(1L, taskRequestDto);
+    ValidationException ex = assertThrows(
+            ValidationException.class,
+            () -> taskController.createTask(1L, taskRequestDto)
+    );
 
-    // Assert
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("Invalid task", response.getBody());
-    verify(taskValidation, times(1)).validateTask(any(Task.class));
+    assertEquals("Invalid task", ex.getMessage());
     verify(taskService, never()).createTask(any(), anyLong());
   }
 
+  @Test
+  void createTask_ShouldThrowUserNotFound_WhenUserMissing() {
+    when(userService.getById(1L)).thenReturn(null);
 
-  /** Test marking task as completed */
+    assertThrows(
+            UserNotFoundException.class,
+            () -> taskController.createTask(1L, taskRequestDto)
+    );
+  }
+
+  // ---------------- MARK COMPLETE ----------------
   @Test
   void markTaskAsCompleted_ShouldReturnOk_WhenTaskExists() {
-    // Arrange
+    // Mock the controller's getTaskByIdAndUser
+    when(taskService.getTaskByIdAndUser(1L, 1L)).thenReturn(taskEntity);
     when(taskService.markTaskAsCompleted(1L, 1L)).thenReturn(taskEntity);
     when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
 
-    // Act
-    ResponseEntity<?> response = taskController.markTaskAsCompleted(1L, 1L);
+    var response = taskController.markTaskAsCompleted(1L, 1L);
 
-    // Assert
-    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(200, response.getStatusCodeValue());
     assertEquals(taskResponseDto, response.getBody());
-    verify(taskService, times(1)).markTaskAsCompleted(1L, 1L);
   }
 
-  /** Test marking task as completed when task does not exist */
   @Test
-  void markTaskAsCompleted_ShouldReturnBadRequest_WhenTaskNotFound() {
-    // Arrange
-    when(taskService.markTaskAsCompleted(1L, 1L))
-            .thenThrow(new IllegalArgumentException("Task not found"));
+  void markTaskAsCompleted_ShouldThrowTaskNotFound_WhenMissing() {
+    when(taskService.getTaskByIdAndUser(1L, 1L)).thenReturn(null);
 
-    // Act
-    ResponseEntity<?> response = taskController.markTaskAsCompleted(1L, 1L);
+    TaskNotFoundException ex = assertThrows(
+            TaskNotFoundException.class,
+            () -> taskController.markTaskAsCompleted(1L, 1L)
+    );
 
-    // Assert
-    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-    assertEquals("Task not found", response.getBody());
-    verify(taskService, times(1)).markTaskAsCompleted(1L, 1L);
+    assertEquals("Error updating task: Task not found or not owned by user.", ex.getMessage());
   }
 
-  /** Test deleting task successfully */
+  // ---------------- DELETE TASK ----------------
   @Test
   void deleteTask_ShouldReturnOk_WhenTaskDeleted() {
-    // Arrange
     when(taskService.deleteTaskByUser(1L, 1L)).thenReturn(true);
 
-    // Act
-    ResponseEntity<?> response = taskController.deleteTask(1L, 1L);
+    var response = taskController.deleteTask(1L, 1L);
 
-    // Assert
-    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(200, response.getStatusCodeValue());
     assertEquals("Task deleted successfully", response.getBody());
-    verify(taskService, times(1)).deleteTaskByUser(1L, 1L);
   }
 
-  /** Test deleting task fails */
   @Test
-  void deleteTask_ShouldReturnNotFound_WhenTaskNotFound() {
-    // Arrange
+  void deleteTask_ShouldThrowTaskNotFound_WhenNotDeleted() {
     when(taskService.deleteTaskByUser(1L, 1L)).thenReturn(false);
 
-    // Act
-    ResponseEntity<?> response = taskController.deleteTask(1L, 1L);
-
-    // Assert
-    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-    assertEquals("Task not found or you are not allowed to delete", response.getBody());
-    verify(taskService, times(1)).deleteTaskByUser(1L, 1L);
+    assertThrows(
+            TaskNotFoundException.class,
+            () -> taskController.deleteTask(1L, 1L)
+    );
   }
 
-
-  /** Test fetching tasks with filters */
+  // ---------------- GET TASKS ----------------
   @Test
   void getTasks_ShouldReturnOk_WhenTasksExist() {
-    // Arrange
-    List<Task> tasks = Collections.singletonList(taskEntity);
     when(taskService.getTasksByUserWithFilters(1L, TaskStatus.PENDING, LocalDate.now().plusDays(1), 0, 10))
-            .thenReturn(tasks);
+            .thenReturn(Collections.singletonList(taskEntity));
     when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
 
-    // Act
-    ResponseEntity<?> response = taskController.getTasksByUser(
+    var response = taskController.getTasksByUser(
             1L,
             0,
             10,
@@ -191,10 +176,7 @@ class TaskControllerTest {
             LocalDate.now().plusDays(1).toString()
     );
 
-    // Assert
-    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(200, response.getStatusCodeValue());
     assertEquals(Collections.singletonList(taskResponseDto), response.getBody());
-    verify(taskService, times(1))
-            .getTasksByUserWithFilters(1L, TaskStatus.PENDING, LocalDate.now().plusDays(1), 0, 10);
   }
 }

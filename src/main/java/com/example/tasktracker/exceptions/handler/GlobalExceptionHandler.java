@@ -1,9 +1,6 @@
 package com.example.tasktracker.exceptions.handler;
 
-import com.example.tasktracker.exceptions.custom.AuthenticationException;
-import com.example.tasktracker.exceptions.custom.TaskNotFoundException;
-import com.example.tasktracker.exceptions.custom.UserNotFoundException;
-import com.example.tasktracker.exceptions.custom.ValidationException;
+import com.example.tasktracker.exceptions.custom.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -32,9 +29,16 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
   }
 
+  @ExceptionHandler(TaskAlreadyCompletedException.class)
+  public ResponseEntity<String> handleStatus(Exception ex){
+    return  ResponseEntity.status(HttpStatus.ALREADY_REPORTED).body(ex.getMessage());
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<String> handleGeneric(Exception ex) {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body("Internal server error: " + ex.getMessage());
   }
+
+
 }

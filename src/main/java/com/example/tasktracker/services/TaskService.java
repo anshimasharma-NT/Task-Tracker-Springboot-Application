@@ -51,4 +51,13 @@ public interface TaskService {
    * @return list of tasks
    */
   List<Task> getTasksByUserWithFilters(Long userId, TaskStatus status, LocalDate dueDate, int page, int size);
+
+  /**
+   * Getting a task by task id and user id.
+   *
+   * @param userId user ID
+   * @param taskId task ID
+   * @return task of user
+   */
+  Task getTaskByIdAndUser(Long taskId, Long userId);
 }

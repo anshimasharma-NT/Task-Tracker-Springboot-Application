@@ -1,11 +1,13 @@
 package com.example.tasktracker.controllers;
 
+import com.example.tasktracker.constants.ErrorConstants;
 import com.example.tasktracker.constants.SuccessConstants;
 import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.UserRequestDto;
 import com.example.tasktracker.dtos.out.UserResponseDTo;
 import com.example.tasktracker.entities.User;
 import com.example.tasktracker.exceptions.custom.AuthenticationException;
+import com.example.tasktracker.exceptions.custom.UserNotFoundException;
 import com.example.tasktracker.mappers.UserMapper;
 import com.example.tasktracker.services.UserService;
 import com.example.tasktracker.validations.UserValidation;
@@ -14,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
 @RequestMapping(UrlConstants.USER)
@@ -34,16 +39,16 @@ public class UserController {
   @PostMapping(UrlConstants.REGISTER)
   public ResponseEntity<UserResponseDTo> register(@RequestBody UserRequestDto userDto) {
 
-    // Validate input; throws ValidationException if invalid
     userValidation.validateUserRegistration(userDto);
 
-    // Convert DTO to entity
     User user = userMapper.toEntity(userDto);
 
-    // Store user; may throw exception internally
     User savedUser = userService.storeUserData(user);
 
-    // Convert entity to response DTO
+    if(savedUser == null){
+      throw new UserNotFoundException(ErrorConstants.ERROR_REGISTER_MESSAGE);
+    }
+
     UserResponseDTo responseDto = userMapper.toResponseDto(savedUser);
 
     LOGGER.info(SuccessConstants.USER_REGISTER_SUCCESS, responseDto.getEmail());
@@ -61,7 +66,7 @@ public class UserController {
             userDto.getEmail(), userDto.getPassword());
 
     if (loggedInUser == null) {
-      throw new AuthenticationException("Invalid email or password");
+      throw new AuthenticationException(ErrorConstants.ERROR_LOGIN_MESSAGE);
     }
 
     // Convert entity to response DTO

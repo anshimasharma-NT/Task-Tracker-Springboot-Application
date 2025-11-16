@@ -23,7 +23,7 @@ public class TaskValidation {
    * Validates a task before creation or update.
    *
    * @param task Task object to validate
-   * @throws IllegalArgumentException if validation fails
+   * @throws ValidationException if validation fails
    */
   public void validateTask(final Task task) {
     if (task == null) {
@@ -57,14 +57,16 @@ public class TaskValidation {
   /**
    * Validates filter parameters for fetching tasks.
    *
-   * @param statusStr the status string (PENDING, COMPLETED, etc.)
-   * @param dueDateStr the due date string in yyyy-MM-dd format
-   * @param page page number (0-based)
+   * @param statusStr status string
+   * @param dueDateStr due date in yyyy-MM-dd
+   * @param page page number
    * @param size page size
-   * @return validated FilterParams object containing parsed values
-   * @throws IllegalArgumentException if any parameter is invalid
+   * @return validated FilterParams
+   * @throws ValidationException if validation fails
    */
-  public FilterParams validateTaskFilters(final String statusStr, final String dueDateStr, final int page, final int size) {
+  public FilterParams validateTaskFilters(final String statusStr, final String dueDateStr,
+                                          final int page, final int size) {
+
     TaskStatus status = null;
     LocalDate dueDate = null;
 
@@ -72,7 +74,7 @@ public class TaskValidation {
     if (statusStr != null && !statusStr.isEmpty()) {
       try {
         status = TaskStatus.valueOf(statusStr.toUpperCase());
-      } catch (ValidationException e) {
+      } catch (IllegalArgumentException e) {
         throw new ValidationException(
                 "Invalid status value: " + statusStr + ". Allowed values: " + Arrays.toString(TaskStatus.values())
         );
@@ -84,15 +86,15 @@ public class TaskValidation {
       try {
         dueDate = LocalDate.parse(dueDateStr);
       } catch (DateTimeParseException e) {
-        throw new IllegalArgumentException(
+        throw new ValidationException(
                 "Invalid dueDate format: " + dueDateStr + ". Expected format: yyyy-MM-dd"
         );
       }
     }
 
-    // Use local variables for page and size if they're final
     int validatedPage = page < 0 ? 0 : page;
-    int validatedSize = (size <= 0) ? NumericConstants.PAGINATION_SIZE : size;
+
+    int validatedSize = size <= 0 ? NumericConstants.PAGINATION_SIZE : size;
     if (validatedSize > NumericConstants.MAX_PAGE_SIZE) {
       validatedSize = NumericConstants.MAX_PAGE_SIZE;
     }
@@ -102,34 +104,22 @@ public class TaskValidation {
 
 
   /**
-   * Helper class to encapsulate validated filter parameters.
+   * Encapsulates validated filter parameters.
    */
   @Getter
   public static class FilterParams {
-    /** status. */
+
     private final TaskStatus status;
-
-    /** dueDate. */
     private final LocalDate dueDate;
-
-    /** page. */
     private final int page;
-
-    /** size. */
     private final int size;
 
-    /** filter params.
-     * @param status the user's task status (pending or completed)
-     * @param page pagination used
-     * @param dueDate the task's duedate
-     * @param size size of the task's to be displayed
-     */
-    public FilterParams(final TaskStatus status, final LocalDate dueDate, final int page, final int size) {
+    public FilterParams(final TaskStatus status, final LocalDate dueDate,
+                        final int page, final int size) {
       this.status = status;
       this.dueDate = dueDate;
       this.page = page;
       this.size = size;
     }
-
   }
 }

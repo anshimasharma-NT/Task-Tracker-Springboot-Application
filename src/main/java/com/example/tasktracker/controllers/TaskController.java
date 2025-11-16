@@ -3,10 +3,12 @@ package com.example.tasktracker.controllers;
 import com.example.tasktracker.constants.SuccessConstants;
 import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.TaskRequestDto;
+import com.example.tasktracker.dtos.out.ApiResponse;
 import com.example.tasktracker.dtos.out.TaskResponseDto;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
 import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.TaskAlreadyCompletedException;
 import com.example.tasktracker.exceptions.custom.TaskNotFoundException;
 import com.example.tasktracker.exceptions.custom.UserNotFoundException;
 import com.example.tasktracker.exceptions.custom.ValidationException;
@@ -23,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import static com.example.tasktracker.constants.ErrorConstants.*;
 
 @RestController
 @RequestMapping(UrlConstants.TASK)
@@ -49,7 +53,7 @@ public class TaskController {
 
     User user = userService.getById(userId);
     if (user == null) {
-      throw new UserNotFoundException("User not found with ID: " + userId);
+      throw new UserNotFoundException(ERROR_USER_NOT_FOUND + userId);
     }
 
     Task task = taskMapper.toEntity(taskDto);
@@ -58,8 +62,10 @@ public class TaskController {
     taskValidation.validateTask(task); // throws ValidationException if invalid
 
     Task savedTask = taskService.createTask(task, userId);
+    if(savedTask == null){
+      throw new TaskNotFoundException(ERROR_CREATE_TASK);
+    }
     TaskResponseDto responseDto = taskMapper.toResponseDto(savedTask);
-
     LOGGER.info(SuccessConstants.TASK_CREATE_SUCCESS, responseDto.getTitle(), user.getEmail());
     return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
@@ -75,7 +81,7 @@ public class TaskController {
 
     User user = userService.getById(userId);
     if (user == null) {
-      throw new UserNotFoundException("User not found with ID: " + userId);
+      throw new UserNotFoundException(ERROR_USER_NOT_FOUND + userId);
     }
 
     TaskStatus status = null;
@@ -83,7 +89,7 @@ public class TaskController {
       try {
         status = TaskStatus.valueOf(statusStr.toUpperCase());
       } catch (IllegalArgumentException e) {
-        throw new ValidationException("Invalid task status: " + statusStr);
+        throw new ValidationException(ERROR_INVALID_TASK_STATUS + statusStr);
       }
     }
 
@@ -93,9 +99,13 @@ public class TaskController {
     }
 
     List<Task> tasks = taskService.getTasksByUserWithFilters(userId, status, dueDate, page, size);
+    if(tasks == null) {
+      throw new TaskNotFoundException(ERROR_RETRIEVE_TASKS);
+    }
     List<TaskResponseDto> responseDtos = tasks.stream()
             .map(taskMapper::toResponseDto)
             .collect(Collectors.toList());
+
 
     return ResponseEntity.ok(responseDtos);
   }
@@ -105,9 +115,17 @@ public class TaskController {
           @PathVariable Long taskId,
           @PathVariable Long userId) {
 
+    Task task = taskService.getTaskByIdAndUser(taskId, userId); // fetch the task first
+    if (task == null) {
+      throw new TaskNotFoundException(ERROR_UPDATE_TASK);
+    }
+    if (task.getStatus() == TaskStatus.COMPLETED) {
+      throw new TaskAlreadyCompletedException("Task status is already completed");
+    }
+
     Task updatedTask = taskService.markTaskAsCompleted(taskId, userId);
     if (updatedTask == null) {
-      throw new TaskNotFoundException("Task not found or not owned by user");
+      throw new TaskNotFoundException(ERROR_UPDATE_TASK);
     }
 
     TaskResponseDto responseDto = taskMapper.toResponseDto(updatedTask);
@@ -121,7 +139,7 @@ public class TaskController {
 
     boolean deleted = taskService.deleteTaskByUser(userId, taskId);
     if (!deleted) {
-      throw new TaskNotFoundException("Task not found or you are not allowed to delete");
+      throw new TaskNotFoundException(ERROR_DELETE_TASK);
     }
 
     return ResponseEntity.ok(SuccessConstants.TASK_DELETE_SUCCESS);
