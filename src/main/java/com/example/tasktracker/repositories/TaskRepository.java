@@ -1,10 +1,14 @@
 package com.example.tasktracker.repositories;
 
 import com.example.tasktracker.entities.Task;
-import com.example.tasktracker.entities.User;
+import com.example.tasktracker.entities.TaskStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import java.time.LocalDate;
 
 /**
  * Repository interface for managing {@link Task} entities.
@@ -27,7 +31,19 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
    * Finds all tasks belonging to a specific user.
    *
    * @param userId the user whose tasks should be fetched
+   * @param status the user's task status
+   * @param dueDate the task's dueDate
+   * @param pageable for pagination
    * @return list of tasks belonging to the user
    */
-  List<Task> findByUserIdOrderByIdAsc(Long userId);
+
+  @Query("SELECT t FROM Task t "
+          + "WHERE t.userId = :userId "
+          + "AND (:status IS NULL OR t.status = :status) "
+          + "AND (:dueDate IS NULL OR t.dueDate = :dueDate)")
+  Page<Task> findTasksByFilters(@Param("userId") Long userId,
+                                @Param("status") TaskStatus status,
+                                @Param("dueDate") LocalDate dueDate,
+                                Pageable pageable);
+
 }

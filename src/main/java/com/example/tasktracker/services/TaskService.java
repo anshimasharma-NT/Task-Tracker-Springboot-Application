@@ -1,7 +1,9 @@
 package com.example.tasktracker.services;
 
 import com.example.tasktracker.entities.Task;
-import com.example.tasktracker.entities.User;
+import com.example.tasktracker.entities.TaskStatus;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -21,14 +23,6 @@ public interface TaskService {
   Task createTask(Task task, Long userId);
 
   /**
-   * Retrieves all tasks belonging to a specific user.
-   *
-   * @param userId the user whose tasks to retrieve
-   * @return list of tasks belonging to the user
-   */
-  List<Task> getTasksByUser(Long userId);
-
-  /**
    * Retrieves a task by its unique ID and then mark its taskStatus as completed.
    *
    * @param taskId the ID of the task
@@ -45,4 +39,16 @@ public interface TaskService {
    * @return the {@link Task} if found, otherwise {@code null}
    */
   boolean deleteTaskByUser(Long userId, Long taskId);
+
+  /**
+   * Fetch tasks by user with pagination, sorting and filtering.
+   *
+   * @param userId user ID
+   * @param status optional status filter (e.g., "PENDING", "COMPLETED")
+   * @param dueDate optional due date filter
+   * @param page page number (0-based)
+   * @param size page size
+   * @return list of tasks
+   */
+  List<Task> getTasksByUserWithFilters(Long userId, TaskStatus status, LocalDate dueDate, int page, int size);
 }

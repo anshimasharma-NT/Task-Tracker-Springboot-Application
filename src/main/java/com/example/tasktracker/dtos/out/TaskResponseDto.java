@@ -1,5 +1,6 @@
 package com.example.tasktracker.dtos.out;
 
+import com.example.tasktracker.entities.TaskStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,8 +16,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public final class TaskResponseDto
-{
+public final class TaskResponseDto {
 
   /** Unique identifier of the user. */
   private final Long id;
@@ -31,7 +31,7 @@ public final class TaskResponseDto
   private final LocalDate dueDate;
 
   /** Task status. **/
-  private final String status;
+  private final TaskStatus status;
 
   /** Task creation time. **/
   private final LocalDateTime createdAt;
@@ -50,7 +50,7 @@ public final class TaskResponseDto
    * @param userId    user id who owns this task
  * **/
   public TaskResponseDto(final Long id, final String title, final String description,
-                         final LocalDate dueDate, final String status,
+                         final LocalDate dueDate, final TaskStatus status,
                          final LocalDateTime createdAt, final Long userId) {
     this.id = id;
     this.title = title;
@@ -60,6 +60,5 @@ public final class TaskResponseDto
     this.createdAt = createdAt;
     this.userId = userId;
   }
-
 
 }

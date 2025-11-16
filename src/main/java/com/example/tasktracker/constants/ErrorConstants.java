@@ -1,16 +1,37 @@
 package com.example.tasktracker.constants;
 
-
 /**
  * {@summary
- * This class contains constant values used for logging messages in the
- * UserController and UserValidation.
+ * This interface contains constant values used for logging error messages
+ * in UserController, TaskController, and validation classes.
  * }
  */
-public interface ErrorConstants
-{
+public interface ErrorConstants {
 
+  /** No-op default method to prevent interface from being empty. */
+  default void constantInterface() {}
 
-  /** Error while registering user message. **/
-  public static final String ERROR_REGISTER_MESSAGE = "Error while registering user: ";
+  /** Error while registering user message. */
+  String ERROR_REGISTER_MESSAGE = "Error while registering user: ";
+
+  /** Error while logging in user message. */
+  String ERROR_LOGIN_MESSAGE = "Error while logging in user: ";
+
+  /** Error when user not found. */
+  String ERROR_USER_NOT_FOUND = "User not found with ID: ";
+
+  /** Error while creating task. */
+  String ERROR_CREATE_TASK = "Error creating task: ";
+
+  /** Error while retrieving tasks. */
+  String ERROR_RETRIEVE_TASKS = "Error retrieving tasks: ";
+
+  /** Error while updating task. */
+  String ERROR_UPDATE_TASK = "Error updating task: ";
+
+  /** Error while deleting task. */
+  String ERROR_DELETE_TASK = "Error deleting task: ";
+
+  /** Invalid status value for task. */
+  String ERROR_INVALID_TASK_STATUS = "Invalid status value: ";
 }

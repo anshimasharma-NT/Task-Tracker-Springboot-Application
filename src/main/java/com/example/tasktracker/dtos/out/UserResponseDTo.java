@@ -13,8 +13,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public final class UserResponseDTo
-{
+public final class UserResponseDTo {
 
   /** Unique identifier of the user. */
   private final Long id;

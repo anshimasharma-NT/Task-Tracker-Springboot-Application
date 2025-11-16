@@ -52,5 +52,15 @@ public class User {
   @Column(nullable = false, length = PASSWORD_MAX_LENGTH)
   private String password;
 
-
+  /** User entity constructor
+   * @param id the unique identifier of the user
+   * @param email the email address of the user
+   * @param password the password of the user
+   * */
+  public User(long id, String email, String password)
+  {
+    this.id = id;
+    this.email = email;
+    this.password = password;
+  }
 }

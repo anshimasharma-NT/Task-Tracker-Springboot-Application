@@ -8,6 +8,11 @@ import com.example.tasktracker.services.TaskService;
 import com.example.tasktracker.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -20,7 +25,7 @@ public class TaskServiceImpl implements TaskService {
   @Autowired
   private TaskRepository taskRepository;
 
-  /** Service for user. **/
+  /** Service for user. */
   @Autowired
   private UserService userService;
 
@@ -35,17 +40,6 @@ public class TaskServiceImpl implements TaskService {
   public Task createTask(final Task task, final Long userId) {
     task.setUserId(userId);
     return taskRepository.save(task);
-  }
-
-  /**
-   * Retrieves all tasks associated with a specific user, ordered by task ID.
-   *
-   * @param userId the user whose tasks are to be retrieved
-   * @return a list of tasks for the given user
-   */
-  @Override
-  public List<Task> getTasksByUser(final Long userId) {
-    return taskRepository.findByUserIdOrderByIdAsc(userId);
   }
 
   /**
@@ -82,7 +76,6 @@ public class TaskServiceImpl implements TaskService {
    * @param taskId the ID of the task to delete
    * @return {@code true} if the task was deleted, {@code false} otherwise
    */
-
   @Override
   public boolean deleteTaskByUser(final Long userId, final Long taskId) {
     User user = userService.getById(userId);
@@ -99,4 +92,25 @@ public class TaskServiceImpl implements TaskService {
             .orElse(false);
   }
 
+  /**
+   * Retrieves all tasks associated with a specific user, optionally filtered by status and due date,
+   * and paginated.
+   *
+   * @param userId the user whose tasks are to be retrieved
+   * @param status optional filter by {@link TaskStatus}, can be null
+   * @param dueDate optional filter by due date, can be null
+   * @param page the page number (0-based)
+   * @param size the number of tasks per page
+   * @return a list of tasks for the given user matching the filters
+   */
+  @Override
+  public List<Task> getTasksByUserWithFilters(
+          final Long userId,
+          final TaskStatus status,
+          final LocalDate dueDate,
+          final int page,
+          final int size) {
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id")); // sorted by id ascending
+    return taskRepository.findTasksByFilters(userId, status, dueDate, pageable).getContent();
+  }
 }

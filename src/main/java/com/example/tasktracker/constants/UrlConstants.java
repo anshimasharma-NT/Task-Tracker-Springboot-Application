@@ -1,20 +1,51 @@
 package com.example.tasktracker.constants;
 
 public interface UrlConstants {
-   String USER = "/user";
 
-   String REGISTER = "/REGISTER";
+  /**
+   * No-op default method to prevent interface from being empty.
+   */
+  default void constantInterface() {
+  }
 
-   String LOGIN = "/login";
+  /**
+   * Endpoint path for user-related operations.
+   */
+  String USER = "/user";
 
-   String TASK = "/task";
+  /**
+   * Endpoint path for registration.
+   */
+  String REGISTER = "/register";
 
-   String ADD_TASK = "/{userId}/addTask";
+  /**
+   * Endpoint path for login operations.
+   */
+  String LOGIN = "/login";
 
-   String GET_TASKS_LIST= "/{userId}/getTasksByUser";
+  /**
+   * Endpoint path for task-related operations.
+   */
+  String TASK = "/task";
 
-   String COMPLETE_TASK = "/complete/{taskId}/{userId}";
+  /**
+   * Endpoint path for adding new task.
+   */
+  String ADD_TASK = "/{userId}/addTask";
 
-   String DELETE_TASK = "/{userId}/deleteTask/{taskId}";
+  /**
+   * Endpoint path for getting tasks by user.
+   */
+  String GET_TASKS_LIST = "/{userId}/getTasksByUser";
+
+  /**
+   * Endpoint path for marking status as completed.
+   */
+  String COMPLETE_TASK = "/complete/{taskId}/{userId}";
+
+  /**
+   * Endpoint path for deletion of user-specific task.
+   */
+  String DELETE_TASK = "/{userId}/deleteTask/{taskId}";
 }
 

@@ -4,7 +4,9 @@ import com.example.tasktracker.constants.NumericConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -20,8 +22,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public final class UserRequestDto
-{
+@AllArgsConstructor
+@NoArgsConstructor
+public final class UserRequestDto {
 
 
 
@@ -40,7 +43,7 @@ public final class UserRequestDto
   /** Password, required and must be strong enough. */
   @NotBlank(message = "Password is required")
   @Size(min = NumericConstants.PASSWORD_MIN_LENGTH, max = NumericConstants.PASSWORD_MAX_LENGTH,
-          message = "Password must be between 6 and 255 characters")
+          message = "Password must be between 8 and 255 characters")
   private String password;
 
 }

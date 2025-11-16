@@ -2,15 +2,14 @@ package com.example.tasktracker.validations;
 
 import com.example.tasktracker.constants.NumericConstants;
 import com.example.tasktracker.dtos.in.UserRequestDto;
-import com.example.tasktracker.entities.User;
-import com.example.tasktracker.exceptions.ValidationException;
+import com.example.tasktracker.exceptions.custom.ValidationException;
 import com.example.tasktracker.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * Validation layer for {@link User} entities.
+ * Validation layer for user entities.
  * <p>
  * This class centralizes all user input validation logic
  * for registration and login operations.

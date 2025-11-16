@@ -1,4 +1,4 @@
-package com.example.tasktracker.exceptions;
+package com.example.tasktracker.exceptions.custom;
 
 /**
  * Custom exception thrown when validation fails in the validation layer.

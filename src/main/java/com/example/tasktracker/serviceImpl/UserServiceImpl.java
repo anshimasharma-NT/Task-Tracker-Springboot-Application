@@ -16,17 +16,16 @@ import org.springframework.stereotype.Service;
  * <p>It is annotated with {@link Service} to indicate that it is a Spring-managed
  * service component.</p>
  *
- * @author Your Name
  * @since 1.0
  */
 @Service
 public class UserServiceImpl implements UserService {
 
-  /** User repository. */
+  /** Repository for user data persistence. */
   @Autowired
   private UserRepository userRepository;
 
-  /** Password encoder. */
+  /** Encoder for securing user passwords. */
   @Autowired
   private PasswordEncoder passwordEncoder;
 

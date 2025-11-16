@@ -1,22 +1,28 @@
 package com.example.tasktracker.controllers;
 
+import com.example.tasktracker.constants.SuccessConstants;
 import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.TaskRequestDto;
 import com.example.tasktracker.dtos.out.TaskResponseDto;
 import com.example.tasktracker.entities.Task;
+import com.example.tasktracker.entities.TaskStatus;
 import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.TaskNotFoundException;
+import com.example.tasktracker.exceptions.custom.UserNotFoundException;
+import com.example.tasktracker.exceptions.custom.ValidationException;
 import com.example.tasktracker.mappers.TaskMapper;
 import com.example.tasktracker.services.TaskService;
 import com.example.tasktracker.services.UserService;
 import com.example.tasktracker.validations.TaskValidation;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(UrlConstants.TASK)
@@ -36,93 +42,88 @@ public class TaskController {
   @Autowired
   private TaskValidation taskValidation;
 
-  /**
-   * Creates a new task for a specific user.
-   */
   @PostMapping(UrlConstants.ADD_TASK)
-  public ResponseEntity<?> addTask(
+  public ResponseEntity<TaskResponseDto> createTask(
           @PathVariable final Long userId,
           @RequestBody final TaskRequestDto taskDto) {
-    try {
-      User user = userService.getById(userId);
-      if (user == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("User not found with ID: " + userId);
-      }
 
-      Task task = taskMapper.toEntity(taskDto);
-      task.setUserId(userId);
-
-      taskValidation.validateTask(task);
-
-      Task savedTask = taskService.createTask(task, userId);
-      TaskResponseDto responseDto = taskMapper.toResponseDto(savedTask);
-
-      LOGGER.info("Task '{}' created for user {}", responseDto.getTitle(), user.getEmail());
-      return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
-
-    } catch (IllegalArgumentException e) {
-      LOGGER.warn("Validation failed while creating task: {}", e.getMessage());
-      return ResponseEntity.badRequest().body(e.getMessage());
-    } catch (Exception e) {
-      LOGGER.error("Error creating task", e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-              .body("Error creating task: " + e.getMessage());
+    User user = userService.getById(userId);
+    if (user == null) {
+      throw new UserNotFoundException("User not found with ID: " + userId);
     }
+
+    Task task = taskMapper.toEntity(taskDto);
+    task.setUserId(userId);
+
+    taskValidation.validateTask(task); // throws ValidationException if invalid
+
+    Task savedTask = taskService.createTask(task, userId);
+    TaskResponseDto responseDto = taskMapper.toResponseDto(savedTask);
+
+    LOGGER.info(SuccessConstants.TASK_CREATE_SUCCESS, responseDto.getTitle(), user.getEmail());
+    return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
 
   @GetMapping(UrlConstants.GET_TASKS_LIST)
-  public ResponseEntity<?> getTasksByUser(@PathVariable final Long userId) {
-    try {
-      User user = userService.getById(userId);
-      if (user == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("User not found with ID: " + userId);
-      }
+  public ResponseEntity<List<TaskResponseDto>> getTasksByUser(
+          @PathVariable final Long userId,
+          @RequestParam(value = "page", defaultValue = "0") final int page,
+          @RequestParam(value = "size", defaultValue = "10") final int size,
+          @RequestParam(value = "status", required = false) final String statusStr,
+          @RequestParam(value = "dueDate", required = false) final String dueDateStr
+  ) {
 
-      List<Task> tasks = taskService.getTasksByUser(userId);
-      List<TaskResponseDto> responseDtos = tasks.stream()
-              .map(taskMapper::toResponseDto)
-              .collect(Collectors.toList());
-
-      return ResponseEntity.ok(responseDtos);
-    } catch (Exception e) {
-      LOGGER.error("Error retrieving tasks", e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-              .body("Error retrieving tasks: " + e.getMessage());
+    User user = userService.getById(userId);
+    if (user == null) {
+      throw new UserNotFoundException("User not found with ID: " + userId);
     }
+
+    TaskStatus status = null;
+    if (statusStr != null && !statusStr.isEmpty()) {
+      try {
+        status = TaskStatus.valueOf(statusStr.toUpperCase());
+      } catch (IllegalArgumentException e) {
+        throw new ValidationException("Invalid task status: " + statusStr);
+      }
+    }
+
+    LocalDate dueDate = null;
+    if (dueDateStr != null && !dueDateStr.isEmpty()) {
+      dueDate = LocalDate.parse(dueDateStr);
+    }
+
+    List<Task> tasks = taskService.getTasksByUserWithFilters(userId, status, dueDate, page, size);
+    List<TaskResponseDto> responseDtos = tasks.stream()
+            .map(taskMapper::toResponseDto)
+            .collect(Collectors.toList());
+
+    return ResponseEntity.ok(responseDtos);
   }
 
   @PutMapping(UrlConstants.COMPLETE_TASK)
-  public ResponseEntity<?> markTaskAsCompleted(
-          final @PathVariable Long taskId,
-          final @PathVariable Long userId) {
-    try {
-      Task updatedTask = taskService.markTaskAsCompleted(taskId, userId);
-      return ResponseEntity.ok(taskMapper.toResponseDto(updatedTask));
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-    } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-              .body("Error updating task: " + e.getMessage());
+  public ResponseEntity<TaskResponseDto> markTaskAsCompleted(
+          @PathVariable Long taskId,
+          @PathVariable Long userId) {
+
+    Task updatedTask = taskService.markTaskAsCompleted(taskId, userId);
+    if (updatedTask == null) {
+      throw new TaskNotFoundException("Task not found or not owned by user");
     }
+
+    TaskResponseDto responseDto = taskMapper.toResponseDto(updatedTask);
+    return ResponseEntity.ok(responseDto);
   }
 
   @DeleteMapping(UrlConstants.DELETE_TASK)
   public ResponseEntity<String> deleteTask(
-          @PathVariable final Long userId,
-          @PathVariable final Long taskId) {
-    try {
-      boolean deleted = taskService.deleteTaskByUser(userId, taskId);
-      if (deleted) {
-        return ResponseEntity.ok("Task deleted successfully");
-      }
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-              .body("Task not found or not owned by user");
-    } catch (Exception e) {
-      LOGGER.error("Error deleting task", e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-              .body("Error deleting task: " + e.getMessage());
+          @PathVariable Long userId,
+          @PathVariable Long taskId) {
+
+    boolean deleted = taskService.deleteTaskByUser(userId, taskId);
+    if (!deleted) {
+      throw new TaskNotFoundException("Task not found or you are not allowed to delete");
     }
+
+    return ResponseEntity.ok(SuccessConstants.TASK_DELETE_SUCCESS);
   }
 }
