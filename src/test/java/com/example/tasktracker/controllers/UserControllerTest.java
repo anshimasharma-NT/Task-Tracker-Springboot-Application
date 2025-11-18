@@ -17,6 +17,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -42,7 +44,7 @@ class UserControllerTest {
   void setUp() {
     MockitoAnnotations.openMocks(this);
 
-    validUserRequest = new UserRequestDto("John Doe", "john@example.com", "password123");
+    validUserRequest = new UserRequestDto("John Doe", "john@example.com", "password123".toCharArray());
 
     userEntity = User.builder()
             .id(1L)
@@ -102,9 +104,14 @@ class UserControllerTest {
 
   @Test
   void loginShouldReturnOkWhenCredentialsAreValid() {
-    doNothing().when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
-    when(userService.getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword()))
-            .thenReturn(userEntity);
+    doNothing().when(userValidation)
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
+
+    when(userService.getUserByEmailAndPassword(
+            validUserRequest.getEmail(),
+            Arrays.toString(validUserRequest.getPassword())
+    )).thenReturn(userEntity);
+
     when(userMapper.toResponseDto(userEntity)).thenReturn(userResponseDto);
 
     ResponseEntity<UserResponseDTo> response = userController.login(validUserRequest);
@@ -112,38 +119,43 @@ class UserControllerTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(userResponseDto, response.getBody());
     verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
     verify(userService, times(1))
-            .getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .getUserByEmailAndPassword(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
   }
 
   @Test
   void loginShouldThrowAuthenticationExceptionWhenUserNotFound() {
-    doNothing().when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
-    when(userService.getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword()))
-            .thenReturn(null);
+    doNothing().when(userValidation)
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
+
+    when(userService.getUserByEmailAndPassword(
+            validUserRequest.getEmail(),
+            Arrays.toString(validUserRequest.getPassword())
+    )).thenReturn(null);
 
     AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
             userController.login(validUserRequest));
 
     assertEquals(ErrorConstants.ERROR_LOGIN_MESSAGE, exception.getMessage());
     verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
     verify(userService, times(1))
-            .getUserByEmailAndPassword(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .getUserByEmailAndPassword(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
   }
 
   @Test
   void loginShouldThrowValidationExceptionWhenValidationFails() {
     doThrow(new IllegalArgumentException("Invalid input"))
-            .when(userValidation).validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .when(userValidation)
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
 
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
             userController.login(validUserRequest));
 
     assertEquals("Invalid input", exception.getMessage());
     verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), validUserRequest.getPassword());
+            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
     verify(userService, never()).getUserByEmailAndPassword(any(), any());
   }
 }

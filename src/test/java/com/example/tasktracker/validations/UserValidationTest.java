@@ -2,6 +2,7 @@ package com.example.tasktracker.validations;
 
 import com.example.tasktracker.dtos.in.UserRequestDto;
 import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.AlreadyExistsException;
 import com.example.tasktracker.exceptions.custom.ValidationException;
 import com.example.tasktracker.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,34 +37,34 @@ class UserValidationTest {
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenNameMissing() {
-    UserRequestDto dto = new UserRequestDto("", "john@example.com", "password123");
+    UserRequestDto dto = new UserRequestDto("", "john@example.com", "password123".toCharArray());
     assertThrows(ValidationException.class,
             () -> userValidation.validateUserRegistration(dto));
   }
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenEmailMissing() {
-    UserRequestDto dto = new UserRequestDto("John", "", "password123");
+    UserRequestDto dto = new UserRequestDto("John", "", "password123".toCharArray());
     assertThrows(ValidationException.class,
             () -> userValidation.validateUserRegistration(dto));
   }
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenEmailInvalid() {
-    UserRequestDto dto = new UserRequestDto("John", "wrongEmail", "password123");
+    UserRequestDto dto = new UserRequestDto("John", "wrongEmail", "password123".toCharArray());
     assertThrows(ValidationException.class,
             () -> userValidation.validateUserRegistration(dto));
   }
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenEmailAlreadyExists() {
-    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "password123");
+    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "password123".toCharArray());
 
     // FIX: Return Optional<User>, NOT Optional<Object>
     when(userRepository.findUserByEmail("john@example.com"))
             .thenReturn(Optional.of(new User()));
 
-    assertThrows(ValidationException.class,
+    assertThrows(AlreadyExistsException.class,
             () -> userValidation.validateUserRegistration(dto));
 
     verify(userRepository, times(1)).findUserByEmail("john@example.com");
@@ -71,7 +72,7 @@ class UserValidationTest {
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenPasswordMissing() {
-    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "");
+    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "".toCharArray());
 
     when(userRepository.findUserByEmail("john@example.com"))
             .thenReturn(Optional.empty());
@@ -82,7 +83,7 @@ class UserValidationTest {
 
   @Test
   void validateUserRegistration_ShouldThrow_WhenPasswordTooShort() {
-    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "123");
+    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "123".toCharArray());
 
     when(userRepository.findUserByEmail("john@example.com"))
             .thenReturn(Optional.empty());
@@ -93,7 +94,7 @@ class UserValidationTest {
 
   @Test
   void validateUserRegistration_ShouldPass_WhenValid() {
-    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "password123");
+    UserRequestDto dto = new UserRequestDto("John", "john@example.com", "password123".toCharArray());
 
     when(userRepository.findUserByEmail("john@example.com"))
             .thenReturn(Optional.empty());

@@ -12,6 +12,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 
 /**
  * Entity representing a user in the system.
@@ -24,44 +27,88 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(name = "users")
-public class User {
+public class User
+{
 
-  /** Maximum length of the name field. */
+  /**
+   * Maximum length of the name field.
+   */
   public static final int NAME_MAX_LENGTH = 100;
 
-  /** Maximum length of the email field. */
+  /**
+   * Maximum length of the email field.
+   */
   public static final int EMAIL_MAX_LENGTH = 150;
 
-  /** Maximum length of the password field. */
+  /**
+   * Maximum length of the password field.
+   */
   public static final int PASSWORD_MAX_LENGTH = 255;
 
-  /** Unique identifier for the user. */
+  /**
+   * Unique identifier for the user.
+   */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  /** Name of the user. */
+  /**
+   * Name of the user.
+   */
   @Column(name = "name", nullable = false, length = NAME_MAX_LENGTH)
   private String name;
 
-  /** Email of the user (must be unique). */
+  /**
+   * Email of the user (must be unique).
+   */
   @Column(name = "email", unique = true, nullable = false, length = EMAIL_MAX_LENGTH)
   private String email;
 
-  /** Encrypted password of the user. */
-  @Column(nullable = false, length = PASSWORD_MAX_LENGTH)
+  /**
+   * Encrypted password of the user.
+   */
+  @Column(nullable = false)
   private String password;
 
-  /** User entity constructor
-   * @param id the unique identifier of the user
-   * @param email the email address of the user
+
+  /**
+   * User entity constructor
+   *
+   * @param id       the unique identifier of the user
+   * @param email    the email address of the user
    * @param password the password for the user
-   * */
-  public User(long id, String name, String email, String password)
-  {
+   *
+   */
+  public User(long id, String name, String email, String password) {
+    super();
     this.id = id;
     this.name = name;
     this.email = email;
     this.password = password;
+  }
+
+  @Override
+  public String toString() {
+    return "User [id=" + id + ", name=" + name + ", email=" + email + ", password=" + password + "]";
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, email, password);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    User user = (User) o;
+    return Objects.equals(id, user.id) &&
+            Objects.equals(name, user.name) &&
+            Objects.equals(email, user.email) &&
+            Objects.equals(password, user.password);
   }
 }

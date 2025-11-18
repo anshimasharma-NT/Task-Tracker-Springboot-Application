@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+
 /**
  * Implementation of {@link UserService} that handles user authentication and data persistence.
  *
@@ -39,11 +41,23 @@ public class UserServiceImpl implements UserService {
   @Override
   public User getUserByEmailAndPassword(final String email, final String password) {
     User user = userRepository.findUserByEmail(email).orElse(null);
-    if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-      return user;
+
+    if (user != null) {
+      String storedPassword = user.getPassword();
+
+      if (password.startsWith("$2a$") || password.startsWith("$2b$") || password.startsWith("$2y$")) {
+        if (storedPassword.equals(password)) {
+          return user;
+        }
+      } else {
+        if (passwordEncoder.matches(password, storedPassword)) {
+          return user;
+        }
+      }
     }
     return null;
   }
+
 
   /**
    * Retrieves a user by their unique ID.
@@ -64,7 +78,11 @@ public class UserServiceImpl implements UserService {
    */
   @Override
   public User storeUserData(final User user) {
-    user.setPassword(passwordEncoder.encode(user.getPassword()));
+    String password = user.getPassword();
+    if (password != null && !password.startsWith("$2a$") && !password.startsWith("$2b$") && !password.startsWith("$2y$")) {
+      password = passwordEncoder.encode(password);
+      user.setPassword(password);
+    }
     return userRepository.save(user);
   }
 }

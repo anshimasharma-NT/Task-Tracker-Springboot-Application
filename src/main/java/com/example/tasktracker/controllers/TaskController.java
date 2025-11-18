@@ -3,7 +3,6 @@ package com.example.tasktracker.controllers;
 import com.example.tasktracker.constants.SuccessConstants;
 import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.TaskRequestDto;
-import com.example.tasktracker.dtos.out.ApiResponse;
 import com.example.tasktracker.dtos.out.TaskResponseDto;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
@@ -59,7 +58,7 @@ public class TaskController {
     Task task = taskMapper.toEntity(taskDto);
     task.setUserId(userId);
 
-    taskValidation.validateTask(task); // throws ValidationException if invalid
+    taskValidation.validateTask(task);
 
     Task savedTask = taskService.createTask(task, userId);
     if(savedTask == null){

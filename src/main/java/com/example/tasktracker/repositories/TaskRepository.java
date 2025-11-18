@@ -56,4 +56,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
    * @return specific task of specific user
    */
   Optional<Object> findByIdAndUserId(Long taskId, Long userId);
+
+  /**
+   * Find task if already added by specific user.
+   *
+   * @param userId the id of the user
+   * @param title the title of the task
+   * @return true or false
+   */
+  boolean existsByTitleAndUserId(String title, Long userId);
 }

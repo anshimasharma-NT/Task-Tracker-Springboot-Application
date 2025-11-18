@@ -12,6 +12,7 @@ import jakarta.persistence.PrePersist;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,15 +65,45 @@ public class Task {
   /** Timestamp indicating when the task was created. */
   private LocalDateTime createdAt = LocalDateTime.now();
 
-  /**
-   * Sets default values before the entity is persisted.
-   *
-   * <p>This method ensures that the task status is set to {@code PENDING} and the
-   * creation timestamp is set to the current time if they are not already initialized.</p>
-   *
-   * <p>Annotated with {@link PrePersist}, this method is automatically called
-   * by the JPA provider before the entity is inserted into the database.</p>
-   */
+  @Override
+  public String toString() {
+    return "Task [id=" + id + ", title=" +title+ ", description=" +description+
+            ",dueDate="+dueDate+ ", status="+status+ ", userId=" +userId+ ", createdAt=" +createdAt+ "]";
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Task task = (Task) o;
+    return Objects.equals(id, task.id) &&
+            Objects.equals(title, task.title) &&
+            Objects.equals(description, task.description) &&
+            Objects.equals(dueDate, task.dueDate) &&
+            Objects.equals(status, task.status) &&
+            Objects.equals(userId, task.userId) &&
+            Objects.equals(createdAt, task.createdAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, title, description, dueDate, status, userId, createdAt);
+
+  }
+
+    /**
+     * Sets default values before the entity is persisted.
+     *
+     * <p>This method ensures that the task status is set to {@code PENDING} and the
+     * creation timestamp is set to the current time if they are not already initialized.</p>
+     *
+     * <p>Annotated with {@link PrePersist}, this method is automatically called
+     * by the JPA provider before the entity is inserted into the database.</p>
+     */
   @PrePersist
   public void ensureDefaultStatus() {
     if (status == null) {

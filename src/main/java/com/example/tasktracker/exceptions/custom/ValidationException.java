@@ -1,17 +1,15 @@
 package com.example.tasktracker.exceptions.custom;
 
 /**
- * Custom exception thrown when validation fails in the validation layer.
- *
- * <p>This allows the application to differentiate between validation
- * errors and other types of exceptions.</p>
+ * {@code ValidationException} is a custom runtime exception that indicates
+ * there exists a validation error.
  */
 public class ValidationException extends RuntimeException {
 
   /**
-   * Creates a new ValidationException with a custom message.
+   * Constructs a new {@code ValidationException} with the specified detail message.
    *
-   * @param message the detail message describing the validation failure
+   * @param message the detail message explaining the reason for the exception.
    */
   public ValidationException(final String message) {
     super(message);

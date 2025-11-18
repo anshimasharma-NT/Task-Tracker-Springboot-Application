@@ -42,8 +42,6 @@ public final class UserRequestDto {
 
   /** Password, required and must be strong enough. */
   @NotBlank(message = "Password is required")
-  @Size(min = NumericConstants.PASSWORD_MIN_LENGTH, max = NumericConstants.PASSWORD_MAX_LENGTH,
-          message = "Password must be between 8 and 255 characters")
-  private String password;
+  private char[] password;
 
 }

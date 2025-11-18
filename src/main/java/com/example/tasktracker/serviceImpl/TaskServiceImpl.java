@@ -3,6 +3,7 @@ package com.example.tasktracker.serviceImpl;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
 import com.example.tasktracker.entities.User;
+import com.example.tasktracker.exceptions.custom.AlreadyExistsException;
 import com.example.tasktracker.repositories.TaskRepository;
 import com.example.tasktracker.services.TaskService;
 import com.example.tasktracker.services.UserService;
@@ -38,6 +39,10 @@ public class TaskServiceImpl implements TaskService {
    */
   @Override
   public Task createTask(final Task task, final Long userId) {
+    if (taskRepository.existsByTitleAndUserId(task.getTitle(), userId)) {
+      throw new AlreadyExistsException(
+              "Task with title '" + task.getTitle() + "' already exists for this user");
+    }
     task.setUserId(userId);
     return taskRepository.save(task);
   }

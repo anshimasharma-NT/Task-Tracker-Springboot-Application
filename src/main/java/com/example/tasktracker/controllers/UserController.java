@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.Arrays;
+
+
 @RestController
 @RequestMapping(UrlConstants.USER)
 public class UserController {
@@ -58,21 +61,21 @@ public class UserController {
   @PostMapping(UrlConstants.LOGIN)
   public ResponseEntity<UserResponseDTo> login(@RequestBody UserRequestDto userDto) {
 
-    // Validate input; throws ValidationException if invalid
-    userValidation.validateUserLogin(userDto.getEmail(), userDto.getPassword());
+    String rawPassword = new String(userDto.getPassword());
 
-    // Authenticate user
+    userValidation.validateUserLogin(userDto.getEmail(), rawPassword);
+
     User loggedInUser = userService.getUserByEmailAndPassword(
-            userDto.getEmail(), userDto.getPassword());
+            userDto.getEmail(), rawPassword);
 
     if (loggedInUser == null) {
       throw new AuthenticationException(ErrorConstants.ERROR_LOGIN_MESSAGE);
     }
 
-    // Convert entity to response DTO
     UserResponseDTo responseDto = userMapper.toResponseDto(loggedInUser);
 
     LOGGER.info(SuccessConstants.USER_LOGIN_SUCCESS, responseDto.getEmail());
     return ResponseEntity.ok(responseDto);
   }
+
 }

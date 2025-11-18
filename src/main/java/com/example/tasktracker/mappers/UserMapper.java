@@ -19,7 +19,7 @@ public class UserMapper {
    * Converts a {@link UserRequestDto} into a {@link User} entity.
    *
    * @param dto the {@link UserRequestDto} containing user registration or login data;
-   *             may be {@code null}
+   *            may be {@code null}
    * @return a {@link User} entity built from the provided DTO,
    *         or {@code null} if the DTO is {@code null}
    */
@@ -31,7 +31,8 @@ public class UserMapper {
     return User.builder()
             .name(dto.getName())
             .email(dto.getEmail())
-            .password(dto.getPassword())
+            // Convert char[] → String correctly
+            .password(dto.getPassword() != null ? new String(dto.getPassword()) : null)
             .build();
   }
 
