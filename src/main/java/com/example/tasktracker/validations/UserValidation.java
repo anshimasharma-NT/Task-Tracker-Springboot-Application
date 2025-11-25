@@ -1,78 +1,63 @@
 package com.example.tasktracker.validations;
 
+import com.example.tasktracker.constants.UserConstants;
 import com.example.tasktracker.dtos.in.UserRequestDto;
 import com.example.tasktracker.entities.User;
 import com.example.tasktracker.exceptions.custom.AlreadyExistsException;
+import com.example.tasktracker.exceptions.custom.InvalidCredentialsException;
 import com.example.tasktracker.exceptions.custom.ValidationException;
 import com.example.tasktracker.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 @Component
 public class UserValidation {
 
-  private final UserRepository userRepository;
+  /**
+   * Logger instance for this class.
+   */
+  private static final Logger LOGGER = LoggerFactory.getLogger(UserValidation.class);
 
-  private static final Pattern EMAIL_PATTERN =
-          Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
-
-  public UserValidation(UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
-
-  // -----------------------------------------------------
-  // Registration Validation
-  // -----------------------------------------------------
-  public void validateUserRegistration(UserRequestDto dto) {
-
-    if (dto == null) {
-      throw new ValidationException("User cannot be null");
-    }
-
-    if (dto.getName() == null || dto.getName().trim().isEmpty()) {
-      throw new ValidationException("Name is required");
-    }
-
-    if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
-      throw new ValidationException("Email is required");
-    }
-
-    if (!EMAIL_PATTERN.matcher(dto.getEmail()).matches()) {
-      throw new ValidationException("Invalid email format");
-    }
-
-    userRepository.findUserByEmail(dto.getEmail())
-            .ifPresent(u -> {
-              throw new AlreadyExistsException("Email already exists");
-            });
-
-    char[] password = dto.getPassword();
-
-    if (password == null || password.length == 0) {
-      throw new ValidationException("Password is required");
-    }
-
-    if (password.length < 6) {
-      throw new ValidationException("Password must be at least 6 characters long");
+  /**
+   * Password encoder used to securely hash passwords.
+   */
+  @Autowired
+  private PasswordEncoder passwordEncoder;
+  /**
+   * Repository for performing operations on {@link User}.
+   */
+  @Autowired
+  private UserRepository userRepository;
+  /**
+   * Validates the {@link UserRequestDto} object.
+   * @param userRequestDto the registration request DTO containing user input.
+   * @throws InvalidCredentialsException if any validation rule fails.
+   */
+  public void loginValidate(final UserRequestDto userRequestDto) {
+    User user = userRepository.findByEmail(userRequestDto.getEmail());
+    String rawPassword = new String(userRequestDto.getPassword());
+    if (Objects.isNull(user) || !rawPassword.equals(user.getPassword())) {
+      throw new InvalidCredentialsException("Invalid email or password");
     }
   }
 
-  // -----------------------------------------------------
-  // Login Validation
-  // -----------------------------------------------------
-  public void validateUserLogin(String email, String password) {
+  /**
+   * Validates the {@link UserRequestDto} object.
+   * @param userRequestDto the registration request DTO containing user input.
+   * @throws AlreadyExistsException if any validation rule fails.
+   */
+  public void registerValidate(final UserRequestDto userRequestDto) {
 
-    if (email == null || email.trim().isEmpty()) {
-      throw new ValidationException("Email is required");
-    }
-
-    if (!EMAIL_PATTERN.matcher(email).matches()) {
-      throw new ValidationException("Invalid email format");
-    }
-
-    if (password == null || password.trim().isEmpty()) {
-      throw new ValidationException("Password is required");
+    if (userRepository.existsByEmail(userRequestDto.getEmail())) {
+      LOGGER.warn(UserConstants.USER_REGISTRATION_FAILED_EMAIL_EXISTS, userRequestDto.getEmail());
+      throw new AlreadyExistsException(UserConstants.USER_EMAIL_ALREADY_EXISTS_MESSAGE);
     }
   }
+
 }

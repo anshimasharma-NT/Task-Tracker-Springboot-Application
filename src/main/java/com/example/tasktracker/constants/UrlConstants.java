@@ -1,51 +1,44 @@
 package com.example.tasktracker.constants;
 
+/**
+ * Interface that defines URL path constants.
+ */
 public interface UrlConstants {
-
   /**
    * No-op default method to prevent interface from being empty.
    */
   default void constantInterface() {
   }
-
   /**
-   * Endpoint path for user-related operations.
+   * Auth Endpoint.
    */
-  String USER = "/user";
-
+  String USER_ENDPOINT = "/api/user";
   /**
-   * Endpoint path for registration.
-   */
-  String REGISTER = "/register";
-
-  /**
-   * Endpoint path for login operations.
+   * User-related operations.
    */
   String LOGIN = "/login";
-
   /**
-   * Endpoint path for task-related operations.
+   * User-related operations.
    */
-  String TASK = "/task";
-
+  String REGISTER = "/register";
   /**
-   * Endpoint path for adding new task.
+   * Task management endpoint.
    */
-  String ADD_TASK = "/{userId}/addTask";
-
+  String TASK_ENDPOINT = "/api/task";
   /**
-   * Endpoint path for getting tasks by user.
+   * Adding task.
    */
-  String GET_TASKS_LIST = "/{userId}/getTasksByUser";
-
+  String ADD_TASK = "/addTask";
   /**
-   * Endpoint path for marking status as completed.
+   * Mark task as complete.
    */
-  String COMPLETE_TASK = "/complete/{taskId}/{userId}";
-
+  String MARK_TASK_AS_COMPLETED = "/{taskId}/user/{userId}/completeTask";
   /**
-   * Endpoint path for deletion of user-specific task.
+   * Delete task.
    */
-  String DELETE_TASK = "/{userId}/deleteTask/{taskId}";
+  String DELETE_TASK = "/{taskId}/user/{userId}/deleteTask";
+  /**
+   * Get User Task.
+   */
+  String GET_TASKS_BY_USER = "/user/{userId}/getTasksByUser";
 }
-

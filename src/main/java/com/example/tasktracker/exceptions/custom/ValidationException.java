@@ -12,6 +12,7 @@ public class ValidationException extends RuntimeException {
    * @param message the detail message explaining the reason for the exception.
    */
   public ValidationException(final String message) {
+
     super(message);
   }
 }

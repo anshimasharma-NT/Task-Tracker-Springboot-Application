@@ -1,209 +1,102 @@
 package com.example.tasktracker.serviceImpl;
 
+import com.example.tasktracker.constants.NumericConstants;
+import com.example.tasktracker.constants.TaskConstants;
+import com.example.tasktracker.dtos.in.TaskRequestDto;
+import com.example.tasktracker.dtos.out.PaginatedTaskResponseDto;
+import com.example.tasktracker.dtos.out.ApiResponseDto;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
-import com.example.tasktracker.entities.User;
 import com.example.tasktracker.repositories.TaskRepository;
-import com.example.tasktracker.services.UserService;
+import com.example.tasktracker.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Optional;
-import java.util.List;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TaskServiceImplTest {
+
+  @Mock
+  private UserRepository userRepository;
 
   @Mock
   private TaskRepository taskRepository;
 
-  @Mock
-  private UserService userService;
-
   @InjectMocks
   private TaskServiceImpl taskService;
 
+  private TaskRequestDto taskRequestDto;
+
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
+    taskRequestDto = new TaskRequestDto();
+    taskRequestDto.setTitle("Test Task");
+    taskRequestDto.setDescription("Test Description");
+    taskRequestDto.setUserId(1L);
+    taskRequestDto.setDueDate(LocalDate.now().plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern(NumericConstants.DATE_PATTERN)));
   }
 
-  // ---------------------------------------------------------------------------
-  // createTask()
-  // ---------------------------------------------------------------------------
+  @Test
+  void testAddTaskSuccess() {
+    ApiResponseDto response = taskService.addTask(taskRequestDto);
+
+    assertTrue(response.isSuccess());
+    assertEquals(TaskConstants.TASK_ADDED_SUCCESS_MESSAGE, response.getMessage());
+    verify(taskRepository).save(any(Task.class));
+  }
+
 
   @Test
-  void createTask_ShouldSetUserId_AndSaveTask() {
+  void testMarkTaskAsComplete() {
     Task task = new Task();
-    when(taskRepository.save(task)).thenReturn(task);
+    task.setStatus(TaskStatus.PENDING);
 
-    Task result = taskService.createTask(task, 10L);
+    ApiResponseDto response = taskService.markTaskAsComplete(task);
 
-    assertEquals(10L, task.getUserId());
-    assertEquals(task, result);
-    verify(taskRepository, times(1)).save(task);
+    assertTrue(response.isSuccess());
+    assertEquals("Task marked as completed.", response.getMessage());
+    assertEquals(TaskStatus.COMPLETED, task.getStatus());
+    verify(taskRepository).save(task);
   }
 
-  // ---------------------------------------------------------------------------
-  // getTaskByIdAndUser()
-  // ---------------------------------------------------------------------------
+  @Test
+  void testDeleteTask() {
+    Long taskId = 1L;
+    ApiResponseDto response = taskService.deleteTask(taskId);
+
+    assertTrue(response.isSuccess());
+    assertEquals("Task deleted successfully.", response.getMessage());
+    verify(taskRepository).deleteById(taskId);
+  }
 
   @Test
-  void getTaskByIdAndUser_ShouldReturnTask_WhenFound() {
+  void testGetTasksByUser() {
     Task task = new Task();
-    when(taskRepository.findByIdAndUserId(1L, 5L))
-            .thenReturn(Optional.of(task));
+    task.setTaskId(1L);
+    task.setTitle("Task1");
+    task.setDescription("Desc1");
+    task.setStatus(TaskStatus.PENDING);
+    task.setUserId(1L);
+    task.setDueDate(LocalDate.now());
 
-    Task result = taskService.getTaskByIdAndUser(1L, 5L);
+    Page<Task> page = new PageImpl<>(Collections.singletonList(task));
+    when(taskRepository.findByUserId(anyLong(), any(Pageable.class))).thenReturn(page);
 
-    assertNotNull(result);
-    assertEquals(task, result);
-  }
+    PaginatedTaskResponseDto response = taskService.getTasksByUser(1L, Pageable.unpaged(), null, null);
 
-  @Test
-  void getTaskByIdAndUser_ShouldReturnNull_WhenNotFound() {
-    when(taskRepository.findByIdAndUserId(1L, 5L))
-            .thenReturn(Optional.empty());
-
-    Task result = taskService.getTaskByIdAndUser(1L, 5L);
-
-    assertNull(result);
-  }
-
-  // ---------------------------------------------------------------------------
-  // markTaskAsCompleted()
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void markTaskAsCompleted_ShouldUpdateStatus_WhenUserOwnsTask() {
-    Task task = new Task();
-    task.setUserId(20L);
-
-    when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-    when(taskRepository.save(task)).thenReturn(task);
-
-    Task result = taskService.markTaskAsCompleted(1L, 20L);
-
-    assertEquals(TaskStatus.COMPLETED, result.getStatus());
-    verify(taskRepository, times(1)).save(task);
-  }
-
-  @Test
-  void markTaskAsCompleted_ShouldThrow_WhenTaskNotFound() {
-    when(taskRepository.findById(1L)).thenReturn(Optional.empty());
-
-    IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> taskService.markTaskAsCompleted(1L, 20L)
-    );
-
-    assertTrue(ex.getMessage().contains("Task not found"));
-  }
-
-  @Test
-  void markTaskAsCompleted_ShouldThrow_WhenUserNotOwner() {
-    Task task = new Task();
-    task.setUserId(99L);
-
-    when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-
-    IllegalArgumentException ex = assertThrows(
-            IllegalArgumentException.class,
-            () -> taskService.markTaskAsCompleted(1L, 20L)
-    );
-
-    assertTrue(ex.getMessage().contains("not allowed"));
-  }
-
-  // ---------------------------------------------------------------------------
-  // deleteTaskByUser()
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void deleteTaskByUser_ShouldReturnFalse_WhenUserNotFound() {
-    when(userService.getById(5L)).thenReturn(null);
-
-    boolean result = taskService.deleteTaskByUser(5L, 1L);
-
-    assertFalse(result);
-
-    // ❌ Removed incorrect verify(taskService...) call
-    // Because taskService is NOT a mock
-  }
-
-  @Test
-  void deleteTaskByUser_ShouldReturnFalse_WhenTaskNotFound() {
-    User user = new User();
-    when(userService.getById(5L)).thenReturn(user);
-    when(taskRepository.findById(1L)).thenReturn(Optional.empty());
-
-    boolean result = taskService.deleteTaskByUser(5L, 1L);
-
-    assertFalse(result);
-  }
-
-  @Test
-  void deleteTaskByUser_ShouldReturnFalse_WhenUserNotOwner() {
-    User user = new User();
-    Task task = new Task();
-    task.setUserId(99L);
-
-    when(userService.getById(5L)).thenReturn(user);
-    when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-
-    boolean result = taskService.deleteTaskByUser(5L, 1L);
-
-    assertFalse(result);
-  }
-
-  @Test
-  void deleteTaskByUser_ShouldDeleteTask_WhenUserOwnsTask() {
-    User user = new User();
-    Task task = new Task();
-    task.setUserId(5L);
-
-    when(userService.getById(5L)).thenReturn(user);
-    when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-
-    boolean result = taskService.deleteTaskByUser(5L, 1L);
-
-    assertTrue(result);
-    verify(taskRepository, times(1)).delete(task);
-  }
-
-  // ---------------------------------------------------------------------------
-  // getTasksByUserWithFilters()
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void getTasksByUserWithFilters_ShouldReturnPagedResults() {
-    Task task1 = new Task();
-    Task task2 = new Task();
-
-    List<Task> tasks = List.of(task1, task2);
-    Page<Task> page = new PageImpl<>(tasks);
-
-    when(taskRepository.findTasksByFilters(
-            eq(10L), eq(TaskStatus.PENDING),
-            eq(LocalDate.of(2025, 1, 1)),
-            any(Pageable.class)
-    )).thenReturn(page);
-
-    List<Task> result = taskService.getTasksByUserWithFilters(
-            10L,
-            TaskStatus.PENDING,
-            LocalDate.of(2025, 1, 1),
-            0,
-            10
-    );
-
-    assertEquals(2, result.size());
-    assertEquals(task1, result.get(0));
-    assertEquals(task2, result.get(1));
+    assertEquals(1, response.getTasks().size());
+    assertEquals(task.getTitle(), response.getTasks().get(0).getTitle());
+    verify(taskRepository).findByUserId(1L, Pageable.unpaged());
   }
 }

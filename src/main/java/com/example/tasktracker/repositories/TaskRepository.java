@@ -29,40 +29,62 @@ import java.util.Optional;
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
   /**
-   * Finds all tasks belonging to a specific user.
+   * Returns true if a task with the given title already exists for the specified user.
+   * The title check is case-insensitive.
    *
-   * @param userId the user whose tasks should be fetched
-   * @param status the user's task status
-   * @param dueDate the task's dueDate
-   * @param pageable for pagination
-   * @return list of tasks belonging to the user
-   */
-
-  @Query("SELECT t FROM Task t "
-          + "WHERE t.userId = :userId "
-          + "AND (:status IS NULL OR t.status = :status) "
-          + "AND (:dueDate IS NULL OR t.dueDate = :dueDate)")
-  Page<Task> findTasksByFilters(@Param("userId") Long userId,
-                                @Param("status") TaskStatus status,
-                                @Param("dueDate") LocalDate dueDate,
-                                Pageable pageable);
-
-
-  /**
-   * Finds all tasks belonging to a specific user.
-   *
-   * @param userId the id of the user
-   * @param taskId the id of the task
-   * @return specific task of specific user
-   */
-  Optional<Object> findByIdAndUserId(Long taskId, Long userId);
-
-  /**
-   * Find task if already added by specific user.
-   *
-   * @param userId the id of the user
+   * @param userId the ID of the user
    * @param title the title of the task
-   * @return true or false
+   * @return true if a duplicate task exists for the user, false otherwise
    */
-  boolean existsByTitleAndUserId(String title, Long userId);
+  boolean existsByUserIdAndTitleIgnoreCase(Long userId, String title);
+
+  /**
+   * Retrieves a page of tasks for a specific user.
+   *
+   * @param userId   ID of the user
+   * @param pageable Pagination information
+   * @return a page of tasks
+   */
+  Page<Task> findByUserId(Long userId, Pageable pageable);
+
+  /**
+   * Retrieves a page of tasks for a specific user filtered by status.
+   *
+   * @param userId   ID of the user
+   * @param status   Status of the tasks
+   * @param pageable Pagination information
+   * @return a page of tasks
+   */
+  Page<Task> findByUserIdAndStatus(Long userId, TaskStatus status, Pageable pageable);
+
+  /**
+   * Retrieves a page of tasks for a specific user filtered by due date.
+   *
+   * @param userId   ID of the user
+   * @param dueDate  Due date of the tasks
+   * @param pageable Pagination information
+   * @return a page of tasks
+   */
+  Page<Task> findByUserIdAndDueDate(Long userId, LocalDate dueDate, Pageable pageable);
+
+  /**
+   * Retrieves a page of tasks for a specific user filtered by status and due date.
+   *
+   * @param userId   ID of the user
+   * @param status   Status of the tasks
+   * @param dueDate  Due date of the tasks
+   * @param pageable Pagination information
+   * @return a page of tasks
+   */
+  Page<Task> findByUserIdAndStatusAndDueDate(Long userId, TaskStatus status, LocalDate dueDate, Pageable pageable);
+
+  /**
+   * Retrieves tasks for a specific user.
+   *
+   * @param userId   ID of the user
+   * @param taskId   ID of the task
+   * @return tasks
+   */
+  Optional<Task> findByTaskIdAndUserId(Long taskId, Long userId);
+
 }

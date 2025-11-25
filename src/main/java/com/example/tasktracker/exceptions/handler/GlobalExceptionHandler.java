@@ -1,98 +1,79 @@
 package com.example.tasktracker.exceptions.handler;
 
+import com.example.tasktracker.dtos.out.ApiResponseDto;
 import com.example.tasktracker.exceptions.custom.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Global exception handler for the Task Tracker application.
- *
- * <p>This class handles all custom and generic exceptions thrown by controllers
- * and provides appropriate HTTP status codes and error messages in the response.</p>
- *
- * <p>Each exception type is mapped to a specific HTTP status code according to
- * the application's error handling strategy.</p>
+ * Global exception handler for the application.
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
   /**
-   * Handles {@link UserNotFoundException} and returns HTTP 404 (Not Found).
-   *
-   * @param ex the thrown {@link UserNotFoundException}
-   * @return a {@link ResponseEntity} containing the error message
-   */
-  @ExceptionHandler(UserNotFoundException.class)
-  public ResponseEntity<String> handleUserNotFound(UserNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-  }
-
-  /**
-   * Handles {@link TaskNotFoundException} and returns HTTP 404 (Not Found).
-   *
-   * @param ex the thrown {@link TaskNotFoundException}
-   * @return a {@link ResponseEntity} containing the error message
-   */
-  @ExceptionHandler(TaskNotFoundException.class)
-  public ResponseEntity<String> handleTaskNotFound(TaskNotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-  }
-
-  /**
-   * Handles {@link ValidationException} and returns HTTP 400 (Bad Request).
-   *
-   * @param ex the thrown {@link ValidationException}
-   * @return a {@link ResponseEntity} containing the error message
-   */
-  @ExceptionHandler(ValidationException.class)
-  public ResponseEntity<String> handleValidation(ValidationException ex) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-  }
-
-  /**
-   * Handles {@link AuthenticationException} and returns HTTP 401 (Unauthorized).
-   *
-   * @param ex the thrown {@link AuthenticationException}
-   * @return a {@link ResponseEntity} containing the error message
-   */
-  @ExceptionHandler(AuthenticationException.class)
-  public ResponseEntity<String> handleAuthentication(AuthenticationException ex) {
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
-  }
-
-  /**
-   * Handles {@link TaskAlreadyCompletedException} and returns HTTP 208 (Already Reported).
-   *
-   * @param ex the thrown {@link TaskAlreadyCompletedException}
-   * @return a {@link ResponseEntity} containing the error message
-   */
-  @ExceptionHandler(TaskAlreadyCompletedException.class)
-  public ResponseEntity<String> handleStatus(Exception ex) {
-    return ResponseEntity.status(HttpStatus.ALREADY_REPORTED).body(ex.getMessage());
-  }
-
-  /**
-   * Handles {@link AlreadyExistsException} and returns HTTP 409 (Conflict).
-   *
-   * @param ex the thrown {@link AlreadyExistsException}
-   * @return a {@link ResponseEntity} containing the error message
+   * Handles the custom EmailAlreadyExistsException.
+   * @param ex the exception instance
+   * @return ResponseEntity containing a RegisterOutDTO with error details
    */
   @ExceptionHandler(AlreadyExistsException.class)
-  public ResponseEntity<String> handleAlreadyExists(AlreadyExistsException ex) {
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+  public ResponseEntity<ApiResponseDto> handleEmailExists(final AlreadyExistsException ex) {
+    ApiResponseDto response = new ApiResponseDto(false, ex.getMessage());
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+  }
+  /**
+   * Handles validation failures for user input .
+   * @param ex  thrown ValidationException
+   * @return ResponseEntity containing a RegisterOutDTO with HTTP status 400
+   */
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<ApiResponseDto> handleValidationException(final ValidationException ex) {
+    ApiResponseDto response = new ApiResponseDto(false, ex.getMessage());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+  /**
+   * Handles invalid credential failures for user input .
+   * @param ex  thrown InvalidCredentialsException
+   * @return ResponseEntity containing a SuccessResponseDTO
+   */
+  @ExceptionHandler(InvalidCredentialsException.class)
+  public ResponseEntity<ApiResponseDto> handleInvalidCredentialsException(final InvalidCredentialsException ex) {
+    ApiResponseDto response = new ApiResponseDto(false, ex.getMessage());
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+  }
+  /**
+   * Handles the case when a requested Task is not found in the system.
+   *
+   * @param ex thrown TaskNotFoundException
+   * @return ResponseEntity containing a SuccessResponseDTO with success=false and the error message
+   */
+  @ExceptionHandler(NotFoundException.class)
+  public ResponseEntity<ApiResponseDto> handleNotFound(final NotFoundException ex) {
+    ApiResponseDto response = new ApiResponseDto(false, ex.getMessage());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
   }
 
   /**
-   * Handles all other generic exceptions and returns HTTP 500 (Internal Server Error).
+   * Handles validation exceptions caused by invalid input during the processing of request bodies.
+   * This handler specifically deals with {@link MethodArgumentNotValidException} thrown when validation fails
    *
-   * @param ex the thrown generic {@link Exception}
-   * @return a {@link ResponseEntity} containing a generic error message with exception details
+   * @param ex the {@link MethodArgumentNotValidException} thrown during validation
+   * @return a {@link ResponseEntity} containing a map of validation error details
    */
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<String> handleGeneric(Exception ex) {
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Internal server error: " + ex.getMessage());
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<?> handleMethodArgumentNotValidExceptions(final MethodArgumentNotValidException ex) {
+    Map<String, String> errors = new HashMap<>();
+
+    ex.getBindingResult().getFieldErrors().forEach(error ->
+            errors.put(error.getField(), error.getDefaultMessage())
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
   }
+
 }

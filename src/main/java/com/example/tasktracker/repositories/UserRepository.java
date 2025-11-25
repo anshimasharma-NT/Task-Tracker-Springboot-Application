@@ -20,11 +20,21 @@ import org.springframework.stereotype.Repository;
 public interface UserRepository extends JpaRepository<User, Integer> {
 
   /**
-   * Finds a user by their email address.
-   *
-   * @param email the email of the user
-   * @return an {@link Optional} containing the found {@link User}, or empty if not found
+   * @param email the email address of user.
+   * @return {@link User} if found.
    */
-  Optional<User> findUserByEmail(String email);
+  User findByEmail(String email);
+  /**
+   * @param email the email address to check for existence
+   * @return {@code true} if a user exists with the specified email, otherwise {@code false}
+   */
+  boolean existsByEmail(String email);
+
+  /**
+   * Checks whether a task (or entity) exists for the given user ID.
+   * @param userId the ID of the user to check for
+   * @return true if an entity with the specified user ID exists, false otherwise
+   */
+  boolean existsByUserId(Long userId);
 
 }

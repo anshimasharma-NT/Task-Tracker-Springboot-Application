@@ -1,161 +1,175 @@
 package com.example.tasktracker.controllers;
 
-import com.example.tasktracker.constants.ErrorConstants;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.tasktracker.constants.UserConstants;
+import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.UserRequestDto;
-import com.example.tasktracker.dtos.out.UserResponseDTo;
-import com.example.tasktracker.entities.User;
-import com.example.tasktracker.exceptions.custom.AuthenticationException;
-import com.example.tasktracker.exceptions.custom.UserNotFoundException;
-import com.example.tasktracker.mappers.UserMapper;
+import com.example.tasktracker.dtos.out.ApiResponseDto;
+import com.example.tasktracker.exceptions.custom.AlreadyExistsException;
+import com.example.tasktracker.exceptions.custom.NotFoundException;
+import com.example.tasktracker.exceptions.handler.GlobalExceptionHandler;
 import com.example.tasktracker.services.UserService;
 import com.example.tasktracker.validations.UserValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Arrays;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+/**
+ * Tests for {@link UserController}.
+ */
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
-
+  /**
+   * Used to perform HTTP requests against the controller in test.
+   */
+  private MockMvc mockMvc;
+  /**
+   *  Used to convert Java objects to JSON and vice versa.
+   */
+  private ObjectMapper objectMapper;
+  /**
+   *  Mocked service layer for user operations.
+   */
+  @Mock
+  private UserService userService;
+  /**
+   * Mocked validator for registration requests.
+   */
+  @Mock
+  private UserValidation userValidation;
+  /**
+   *  The controller under test.
+   */
   @InjectMocks
   private UserController userController;
 
-  @Mock
-  private UserService userService;
-
-  @Mock
-  private UserValidation userValidation;
-
-  @Mock
-  private UserMapper userMapper;
-
-  private UserRequestDto validUserRequest;
-  private User userEntity;
-  private UserResponseDTo userResponseDto;
-
+  /**
+   * Sets up MockMvc before each test.
+   */
   @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
-
-    validUserRequest = new UserRequestDto("John Doe", "john@example.com", "password123".toCharArray());
-
-    userEntity = User.builder()
-            .id(1L)
-            .name("John Doe")
-            .email("john@example.com")
-            .password("encodedPassword")
+  void setup() {
+    objectMapper = new ObjectMapper();
+    mockMvc = MockMvcBuilders.standaloneSetup(userController)
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
-
-    userResponseDto = new UserResponseDTo(1L, "John Doe", "john@example.com");
   }
 
-  // ------------------- REGISTER -------------------
-
+  /**
+   * Tests the register endpoint.
+   */
   @Test
-  void registerShouldReturnCreatedWhenUserIsValid() {
-    doNothing().when(userValidation).validateUserRegistration(validUserRequest);
-    when(userMapper.toEntity(validUserRequest)).thenReturn(userEntity);
-    when(userService.storeUserData(userEntity)).thenReturn(userEntity);
-    when(userMapper.toResponseDto(userEntity)).thenReturn(userResponseDto);
+  void testRegisterSuccessful() throws Exception {
+    String name1 = "Anshima Sharma";
+    String email = "anshima09@nucleusteq.com";
+    String rawPassword = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
+    char[] password = rawPassword.toCharArray();
 
-    ResponseEntity<UserResponseDTo> response = userController.register(validUserRequest);
+    UserRequestDto userRequestDto = new UserRequestDto(name1, email, password);
+    ApiResponseDto successResponse =
+            new ApiResponseDto(true, UserConstants.USER_REGISTRATION_SUCCESS_MESSAGE);
 
-    assertEquals(HttpStatus.CREATED, response.getStatusCode());
-    assertEquals(userResponseDto, response.getBody());
-    verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
-    verify(userService, times(1)).storeUserData(userEntity);
+    String inputJSON = objectMapper.writeValueAsString(userRequestDto);
+    String expectedOutputJSON = objectMapper.writeValueAsString(successResponse);
+
+    doNothing().when(userValidation).registerValidate(any(UserRequestDto.class));
+
+    when(userService.registerUser(any(UserRequestDto.class))).thenReturn(successResponse);
+
+    mockMvc.perform(
+                    MockMvcRequestBuilders.post(UrlConstants.USER_ENDPOINT + UrlConstants.REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(inputJSON))
+            .andExpect(MockMvcResultMatchers.status().isCreated())
+            .andExpect(MockMvcResultMatchers.content().json(expectedOutputJSON))
+            .andDo(MockMvcResultHandlers.print());
   }
-
+  /**
+   * Tests the register already exist.
+   */
   @Test
-  void registerShouldThrowUserNotFoundExceptionWhenUserServiceReturnsNull() {
-    doNothing().when(userValidation).validateUserRegistration(validUserRequest);
-    when(userMapper.toEntity(validUserRequest)).thenReturn(userEntity);
-    when(userService.storeUserData(userEntity)).thenReturn(null);
+  void testRegisterUserWithExistingEmail() throws Exception {
+    String name1 = "Anshima Sharma";
+    String email = "anshima09@nucleusteq.com";
+    String rawPassword = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
+    char[] password = rawPassword.toCharArray();
 
-    UserNotFoundException exception = assertThrows(UserNotFoundException.class, () ->
-            userController.register(validUserRequest));
+    UserRequestDto userRequestDto = new UserRequestDto(name1, email, password);
+    String inputJSON = objectMapper.writeValueAsString(userRequestDto);
 
-    assertEquals(ErrorConstants.ERROR_REGISTER_MESSAGE, exception.getMessage());
-    verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
-    verify(userService, times(1)).storeUserData(userEntity);
+    doNothing().when(userValidation).registerValidate(any(UserRequestDto.class));
+    when(userService.registerUser(any(UserRequestDto.class))).thenThrow(new AlreadyExistsException("Email already in use"));
+    ApiResponseDto expectedResponse =
+            new ApiResponseDto(false, "Email already in use");
+    String expectedJson = objectMapper.writeValueAsString(expectedResponse);
+
+    mockMvc.perform(
+                    MockMvcRequestBuilders.post(UrlConstants.USER_ENDPOINT + UrlConstants.REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(inputJSON))
+            .andExpect(MockMvcResultMatchers.status().isConflict())
+            .andExpect(MockMvcResultMatchers.content().json(expectedJson))
+            .andDo(MockMvcResultHandlers.print());
   }
-
+  /**
+   * Test Login Endpoint.
+   */
   @Test
-  void registerShouldThrowValidationExceptionWhenValidationFails() {
-    doThrow(new IllegalArgumentException("Invalid input"))
-            .when(userValidation).validateUserRegistration(validUserRequest);
+  public void testLoginUser() throws Exception {
+    String email = "anshima09@nucleusteq.com";
+    String rawPassword = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
+    char[] password = rawPassword.toCharArray();
+    UserRequestDto userRequestDto = new UserRequestDto(email, password);
+    String inputJSON = objectMapper.writeValueAsString(userRequestDto);
 
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-            userController.register(validUserRequest));
+    doNothing().when(userValidation).loginValidate(any(UserRequestDto.class));
+    ApiResponseDto successResponse =
+            new ApiResponseDto(true, UserConstants.USER_LOGIN_SUCCESSFULLY);
+    when(userService.loginUser(any(UserRequestDto.class))).thenReturn(successResponse);
 
-    assertEquals("Invalid input", exception.getMessage());
-    verify(userValidation, times(1)).validateUserRegistration(validUserRequest);
-    verify(userService, never()).storeUserData(any());
+    String expectedOutputJSON = objectMapper.writeValueAsString(successResponse);
+
+    mockMvc.perform(
+                    MockMvcRequestBuilders.post(UrlConstants.USER_ENDPOINT + UrlConstants.LOGIN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(inputJSON))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().json(expectedOutputJSON))
+            .andDo(MockMvcResultHandlers.print());
   }
-
-  // ------------------- LOGIN -------------------
-
+  /**
+   * Tests the login user not exist.
+   */
   @Test
-  void loginShouldReturnOkWhenCredentialsAreValid() {
-    doNothing().when(userValidation)
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-
-    when(userService.getUserByEmailAndPassword(
-            validUserRequest.getEmail(),
-            Arrays.toString(validUserRequest.getPassword())
-    )).thenReturn(userEntity);
-
-    when(userMapper.toResponseDto(userEntity)).thenReturn(userResponseDto);
-
-    ResponseEntity<UserResponseDTo> response = userController.login(validUserRequest);
-
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(userResponseDto, response.getBody());
-    verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-    verify(userService, times(1))
-            .getUserByEmailAndPassword(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-  }
-
-  @Test
-  void loginShouldThrowAuthenticationExceptionWhenUserNotFound() {
-    doNothing().when(userValidation)
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-
-    when(userService.getUserByEmailAndPassword(
-            validUserRequest.getEmail(),
-            Arrays.toString(validUserRequest.getPassword())
-    )).thenReturn(null);
-
-    AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
-            userController.login(validUserRequest));
-
-    assertEquals(ErrorConstants.ERROR_LOGIN_MESSAGE, exception.getMessage());
-    verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-    verify(userService, times(1))
-            .getUserByEmailAndPassword(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-  }
-
-  @Test
-  void loginShouldThrowValidationExceptionWhenValidationFails() {
-    doThrow(new IllegalArgumentException("Invalid input"))
-            .when(userValidation)
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-            userController.login(validUserRequest));
-
-    assertEquals("Invalid input", exception.getMessage());
-    verify(userValidation, times(1))
-            .validateUserLogin(validUserRequest.getEmail(), Arrays.toString(validUserRequest.getPassword()));
-    verify(userService, never()).getUserByEmailAndPassword(any(), any());
+  public void testLoginUserNotExist() throws Exception {
+    String email = "anshima09@nucleusteq.com";
+    String rawPassword = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
+    char[] password = rawPassword.toCharArray();
+    UserRequestDto userRequestDto = new UserRequestDto(email, password);
+    String inputJSON = objectMapper.writeValueAsString(userRequestDto);
+    doNothing().when(userValidation).loginValidate(any(UserRequestDto.class));
+    ApiResponseDto expectedResponse =
+            new ApiResponseDto(false, "User not found");
+    String expectedOutputJSON = objectMapper.writeValueAsString(expectedResponse);
+    when(userService.loginUser(any(UserRequestDto.class))).thenThrow(new NotFoundException("User not found"));
+    mockMvc.perform(
+                    MockMvcRequestBuilders.post(UrlConstants.USER_ENDPOINT + UrlConstants.LOGIN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(inputJSON))
+            .andExpect(MockMvcResultMatchers.status().isNotFound())
+            .andExpect(MockMvcResultMatchers.content().json(expectedOutputJSON))
+            .andDo(MockMvcResultHandlers.print());
   }
 }

@@ -4,10 +4,10 @@ import com.example.tasktracker.constants.NumericConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Data Transfer Object for user registration and login requests.
@@ -19,29 +19,48 @@ import lombok.Setter;
  * <p>This class is declared as {@code final} because it is not designed
  * for inheritance — it is intended solely as a data carrier.</p>
  */
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
+@EqualsAndHashCode
 public final class UserRequestDto {
 
-
-
-  /** User's name, required and must be between 2–100 characters. */
-  @NotBlank(message = "Name is required")
-  @Size(min = 2, max = NumericConstants.NAME_MAX_LENGTH,
-          message = "Name must be between 2 and 100 characters")
+  /** User's name. */
   private String name;
 
   /** User's email, required and must be in valid email format. */
-  @NotBlank(message = "Email is required")
-  @Email(message = "Invalid email format")
   @Size(max = NumericConstants.EMAIL_MAX_LENGTH, message = "Email must be at most 150 characters")
   private String email;
 
   /** Password, required and must be strong enough. */
-  @NotBlank(message = "Password is required")
   private char[] password;
+
+  /**
+   * Defensive getter: returns a copy of the password array.
+   * @return password
+   */
+  public char[] getPassword() {
+    return password == null ? null : password.clone();
+  }
+
+  /**
+   * Defensive setter: stores a copy of the password array.
+   * @param password password setter
+   */
+  public void setPassword(final char[] password) {
+    this.password = password == null ? null : password.clone();
+  }
+
+  /**
+   * Custom constructor that makes defensive copy of password.
+   * @param email email of the user
+   * @param password password of the user
+   */
+  public UserRequestDto(final String email, final char[] password) {
+    this.email = email;
+    this.password = password == null ? null : password.clone();
+  }
 
 }

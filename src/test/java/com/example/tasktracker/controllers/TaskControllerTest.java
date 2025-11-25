@@ -1,33 +1,47 @@
 package com.example.tasktracker.controllers;
 
+import com.example.tasktracker.constants.TaskConstants;
+import com.example.tasktracker.constants.UrlConstants;
 import com.example.tasktracker.dtos.in.TaskRequestDto;
+import com.example.tasktracker.dtos.out.PaginatedTaskResponseDto;
+import com.example.tasktracker.dtos.out.ApiResponseDto;
 import com.example.tasktracker.dtos.out.TaskResponseDto;
 import com.example.tasktracker.entities.Task;
 import com.example.tasktracker.entities.TaskStatus;
-import com.example.tasktracker.entities.User;
-import com.example.tasktracker.exceptions.custom.TaskNotFoundException;
-import com.example.tasktracker.exceptions.custom.UserNotFoundException;
-import com.example.tasktracker.exceptions.custom.ValidationException;
-import com.example.tasktracker.mappers.TaskMapper;
 import com.example.tasktracker.services.TaskService;
-import com.example.tasktracker.services.UserService;
 import com.example.tasktracker.validations.TaskValidation;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
 
-  @InjectMocks
-  private TaskController taskController;
+  private MockMvc mockMvc;
+  private ObjectMapper objectMapper;
 
   @Mock
   private TaskService taskService;
@@ -35,148 +49,122 @@ class TaskControllerTest {
   @Mock
   private TaskValidation taskValidation;
 
-  @Mock
-  private TaskMapper taskMapper;
-
-  @Mock
-  private UserService userService;
-
-  private TaskRequestDto taskRequestDto;
-  private Task taskEntity;
-  private TaskResponseDto taskResponseDto;
-  private User user;
+  @InjectMocks
+  private TaskController taskController;
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
+    objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    taskRequestDto = new TaskRequestDto("Test Task", "Description", LocalDate.now().plusDays(1));
+    mockMvc = MockMvcBuilders.standaloneSetup(taskController).build();
+  }
 
-    taskEntity = Task.builder()
-            .id(1L)
-            .title("Test Task")
-            .description("Description")
-            .dueDate(LocalDate.now().plusDays(1))
-            .status(TaskStatus.PENDING)
-            .userId(1L)
-            .build();
+  @Test
+  void testAddTask() throws Exception {
+    TaskRequestDto taskRequestDto = new TaskRequestDto();
+    taskRequestDto.setTitle("Test Task");
+    taskRequestDto.setDescription("Test Description");
+    taskRequestDto.setUserId(1L);
+    taskRequestDto.setDueDate("2025-12-31");
 
-    taskResponseDto = new TaskResponseDto(
+    ApiResponseDto responseDto = new ApiResponseDto(true, TaskConstants.TASK_ADDED_SUCCESS_MESSAGE);
+
+    doNothing().when(taskValidation).validateAddTask(any(TaskRequestDto.class));
+    when(taskService.addTask(any(TaskRequestDto.class))).thenReturn(responseDto);
+
+    mockMvc.perform(MockMvcRequestBuilders.post(UrlConstants.TASK_ENDPOINT + UrlConstants.ADD_TASK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(taskRequestDto)))
+            .andExpect(MockMvcResultMatchers.status().isCreated())
+            .andExpect(MockMvcResultMatchers.content().json(objectMapper.writeValueAsString(responseDto)))
+            .andDo(MockMvcResultHandlers.print());
+  }
+
+  @Test
+  void testMarkTaskAsComplete() throws Exception {
+    Long taskId = 1L;
+    Long userId = 1L;
+    Task task = new Task();
+    task.setTaskId(taskId);
+    ApiResponseDto response = new ApiResponseDto(true, "Task marked as completed.");
+
+    when(taskValidation.validateTaskID(taskId)).thenReturn(task);
+    when(taskService.markTaskAsComplete(task)).thenReturn(response);
+
+    mockMvc.perform(MockMvcRequestBuilders.put(UrlConstants.TASK_ENDPOINT + UrlConstants.MARK_TASK_AS_COMPLETED, taskId, userId)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().json(objectMapper.writeValueAsString(response)))
+            .andDo(MockMvcResultHandlers.print());
+  }
+
+  @Test
+  void testDeleteTask() throws Exception {
+    Long taskId = 1L;
+    Long userId = 1L;
+    ApiResponseDto response = new ApiResponseDto(true, "Task deleted successfully.");
+
+    when(taskValidation.validateTaskID(taskId)).thenReturn(new Task());
+    when(taskService.deleteTask(taskId)).thenReturn(response);
+
+    mockMvc.perform(MockMvcRequestBuilders.delete(UrlConstants.TASK_ENDPOINT + UrlConstants.DELETE_TASK, taskId, userId))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().json(objectMapper.writeValueAsString(response)))
+            .andDo(MockMvcResultHandlers.print());
+  }
+
+  @Test
+  void testGetTasksByUser() throws Exception {
+    Long userId = 1L;
+    int page = 0;
+    int size = 10;
+
+    LocalDate fixedDueDate = LocalDate.of(2025, 11, 23);
+    LocalDateTime fixedCreatedAt = LocalDateTime.of(2025, 11, 23, 12, 0, 0);
+
+    TaskResponseDto taskResponse = new TaskResponseDto(
             1L,
-            "Test Task",
-            "Description",
-            LocalDate.now().plusDays(1),
+            "Task 1",
+            "Description 1",
             TaskStatus.PENDING,
-            LocalDateTime.now(),
-            1L
+            fixedDueDate,
+            fixedCreatedAt
     );
 
-    user = new User(1L, "Anshima Sharma", "test@example.com", "password");
-    when(userService.getById(1L)).thenReturn(user);
-  }
-
-  // ---------------- CREATE TASK ----------------
-  @Test
-  void createTask_ShouldReturnCreated_WhenTaskIsValid() {
-    doNothing().when(taskValidation).validateTask(any(Task.class));
-    when(taskMapper.toEntity(taskRequestDto)).thenReturn(taskEntity);
-    when(taskService.createTask(taskEntity, 1L)).thenReturn(taskEntity);
-    when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
-
-    var response = taskController.createTask(1L, taskRequestDto);
-
-    assertEquals(201, response.getStatusCodeValue());
-    assertEquals(taskResponseDto, response.getBody());
-  }
-
-  @Test
-  void createTask_ShouldThrowValidationException_WhenInvalid() {
-    when(taskMapper.toEntity(taskRequestDto)).thenReturn(taskEntity);
-    doThrow(new ValidationException("Invalid task"))
-            .when(taskValidation).validateTask(any(Task.class));
-
-    ValidationException ex = assertThrows(
-            ValidationException.class,
-            () -> taskController.createTask(1L, taskRequestDto)
-    );
-
-    assertEquals("Invalid task", ex.getMessage());
-    verify(taskService, never()).createTask(any(), anyLong());
-  }
-
-  @Test
-  void createTask_ShouldThrowUserNotFound_WhenUserMissing() {
-    when(userService.getById(1L)).thenReturn(null);
-
-    assertThrows(
-            UserNotFoundException.class,
-            () -> taskController.createTask(1L, taskRequestDto)
-    );
-  }
-
-  // ---------------- MARK COMPLETE ----------------
-  @Test
-  void markTaskAsCompleted_ShouldReturnOk_WhenTaskExists() {
-    // Mock the controller's getTaskByIdAndUser
-    when(taskService.getTaskByIdAndUser(1L, 1L)).thenReturn(taskEntity);
-    when(taskService.markTaskAsCompleted(1L, 1L)).thenReturn(taskEntity);
-    when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
-
-    var response = taskController.markTaskAsCompleted(1L, 1L);
-
-    assertEquals(200, response.getStatusCodeValue());
-    assertEquals(taskResponseDto, response.getBody());
-  }
-
-  @Test
-  void markTaskAsCompleted_ShouldThrowTaskNotFound_WhenMissing() {
-    when(taskService.getTaskByIdAndUser(1L, 1L)).thenReturn(null);
-
-    TaskNotFoundException ex = assertThrows(
-            TaskNotFoundException.class,
-            () -> taskController.markTaskAsCompleted(1L, 1L)
-    );
-
-    assertEquals("Error updating task: Task not found or not owned by user.", ex.getMessage());
-  }
-
-  // ---------------- DELETE TASK ----------------
-  @Test
-  void deleteTask_ShouldReturnOk_WhenTaskDeleted() {
-    when(taskService.deleteTaskByUser(1L, 1L)).thenReturn(true);
-
-    var response = taskController.deleteTask(1L, 1L);
-
-    assertEquals(200, response.getStatusCodeValue());
-    assertEquals("Task deleted successfully", response.getBody());
-  }
-
-  @Test
-  void deleteTask_ShouldThrowTaskNotFound_WhenNotDeleted() {
-    when(taskService.deleteTaskByUser(1L, 1L)).thenReturn(false);
-
-    assertThrows(
-            TaskNotFoundException.class,
-            () -> taskController.deleteTask(1L, 1L)
-    );
-  }
-
-  // ---------------- GET TASKS ----------------
-  @Test
-  void getTasks_ShouldReturnOk_WhenTasksExist() {
-    when(taskService.getTasksByUserWithFilters(1L, TaskStatus.PENDING, LocalDate.now().plusDays(1), 0, 10))
-            .thenReturn(Collections.singletonList(taskEntity));
-    when(taskMapper.toResponseDto(taskEntity)).thenReturn(taskResponseDto);
-
-    var response = taskController.getTasksByUser(
+    List<TaskResponseDto> tasks = Collections.singletonList(taskResponse);
+    PaginatedTaskResponseDto paginatedResponse = new PaginatedTaskResponseDto(
+            tasks,
+            page,
+            size,
             1L,
-            0,
-            10,
-            "PENDING",
-            LocalDate.now().plusDays(1).toString()
+            1
     );
 
-    assertEquals(200, response.getStatusCodeValue());
-    assertEquals(Collections.singletonList(taskResponseDto), response.getBody());
+    doNothing().when(taskValidation).validateUserID(userId);
+    when(taskService.getTasksByUser(any(Long.class), any(Pageable.class), any(), any()))
+            .thenReturn(paginatedResponse);
+
+    String responseContent = mockMvc.perform(MockMvcRequestBuilders.get(UrlConstants.TASK_ENDPOINT + UrlConstants.GET_TASKS_BY_USER, userId)
+                    .param("page", String.valueOf(page))
+                    .param("size", String.valueOf(size))
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    PaginatedTaskResponseDto response = objectMapper.readValue(responseContent, PaginatedTaskResponseDto.class);
+
+    assertEquals(1, response.getTasks().size());
+    TaskResponseDto task = response.getTasks().get(0);
+    assertEquals(1L, task.getTaskId());
+    assertEquals("Task 1", task.getTitle());
+    assertEquals("Description 1", task.getDescription());
+    assertEquals(TaskStatus.PENDING, task.getStatus());
+    assertEquals(fixedDueDate, task.getDueDate());
+    assertEquals(fixedCreatedAt, task.getCreatedAt());
   }
+
 }

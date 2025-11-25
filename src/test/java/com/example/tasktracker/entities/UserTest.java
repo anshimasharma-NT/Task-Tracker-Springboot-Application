@@ -1,103 +1,83 @@
 package com.example.tasktracker.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.example.tasktracker.entities.User;
 import org.junit.jupiter.api.Test;
 
-public class UserTest {
+/**
+ * Tests for {@link User}.
+ */
+class UserTest {
 
+  /**
+   * Tests getters and setters of the User entity.
+   */
   @Test
   public void testGetterAndSetter() {
     User user = new User();
 
-    // Test id
-    assertNull(user.getId());
-    Long id = 1L;
-    user.setId(id);
-    assertEquals(id, user.getId());
+    assertNull(user.getUserId());
+    Long userId = 1L;
+    user.setUserId(userId);
+    assertEquals(userId, user.getUserId());
 
-    // Test name
     assertNull(user.getName());
-    String name = "John Doe";
+    String name = "Anshima";
     user.setName(name);
     assertEquals(name, user.getName());
 
-    // Test email
     assertNull(user.getEmail());
-    String email = "john@example.com";
+    String email = "anshima54@nucleusteq.com";
     user.setEmail(email);
     assertEquals(email, user.getEmail());
 
-    // Test password
     assertNull(user.getPassword());
-    String password = "mypassword";
+    String password = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
     user.setPassword(password);
     assertEquals(password, user.getPassword());
   }
 
+  /**
+   * Tests the toString() method.
+   */
   @Test
   public void testToString() {
     User user = new User();
-    Long id = 1L;
+    Long userId = 1L;
     String name = "Anshima Sharma";
-    String email = "anshima0906@gmail.com";
-    String password = "Anshima0906";
+    String email = "anshima54@nucleusteq.com";
+    String password = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
 
-    user.setId(id);
-    user.setName(name);
+    user.setUserId(userId);
     user.setEmail(email);
+    user.setName(name);
     user.setPassword(password);
 
-    String expected = "User [id=" + id + ", name=" + name + ", email=" + email + ", password=" + password + "]";
+    String expected = "User(userId=1, name=Anshima Sharma, email=anshima54@nucleusteq.com, "
+            + "password=$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72)";
     assertEquals(expected, user.toString());
   }
 
+  /**
+   * Tests equals() and hashCode() behavior.
+   */
   @Test
-  public void testEqualsAndHashCode(){
-    Long id = 1L;
+  public void testEqualsAndHashCode() {
+    Long userId = 1L;
     String name = "Anshima Sharma";
-    String email = "anshima0906@gmail.com";
-    String password = "Anshima0906";
+    String email = "anshima54@nucleusteq.com";
+    String password = "$2a$10$ogezBB3qrxm6m5aagX.Nm.c72aJF3l5O5z9G90bFCxqNe0LtC4Z72";
 
-    User user1 = setUpUser(id, name, email, password);
+    User user1 = new User(userId, name, email, password);
 
     assertEquals(user1, user1);
     assertEquals(user1.hashCode(), user1.hashCode());
 
-    assertNotEquals(new Object(), user1);
+    User user2 = new User(2L, name, email, password);
+    assertEquals(user2, user2);
+    assertEquals(user2.hashCode(), user2.hashCode());
 
-    User user2 = setUpUser(id, name, email, password);
-    assertEquals(user1, user2);
-    assertEquals(user1.hashCode(), user2.hashCode());
-
-    user2 = setUpUser(2L, name, email, password);
-    assertNotEquals(user1, user2);
-    assertNotEquals(user1.hashCode(), user2.hashCode());
-
-    user2 = setUpUser(id, "Garima Sharma", email, password);
-    assertNotEquals(user1, user2);
-    assertNotEquals(user1.hashCode(), user2.hashCode());
-
-    user2 = setUpUser(id, name, "anshima54@gmail.com", password);
-    assertNotEquals(user1, user2);
-    assertNotEquals(user1.hashCode(), user2.hashCode());
-
-    user2 = setUpUser(id, name, email, "Anshima54");
-    assertNotEquals(user1, user2);
-    assertNotEquals(user1.hashCode(), user2.hashCode());
-
-    user1 = new User();
-    user2 = new User();
-    assertEquals(user1, user2);
-    assertEquals(user1.hashCode(), user2.hashCode());
-  }
-
-  private User setUpUser(Long id, String name, String email, String password) {
-    User user = new User();
-    user.setId(id);
-    user.setName(name);
-    user.setEmail(email);
-    user.setPassword(password);
-    return user;
   }
 }
