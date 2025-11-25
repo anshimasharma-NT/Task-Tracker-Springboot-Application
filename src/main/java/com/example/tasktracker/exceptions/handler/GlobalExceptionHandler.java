@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
   /**
    * Handles the case when a requested Task is not found in the system.
    *
-   * @param ex thrown TaskNotFoundException
+   * @param ex thrown NotFoundException
    * @return ResponseEntity containing a SuccessResponseDTO with success=false and the error message
    */
   @ExceptionHandler(NotFoundException.class)

@@ -9,11 +9,12 @@ import org.junit.jupiter.api.Test;
 /**
  * Unit tests for {@link ApiResponseDto}.
  */
-public class SuccessResponseDtoTest {
+public class ApiResponseDtoTest
+{
   /**
-   * SuccessResponseDTO .
+   * ApiResponseDto .
    */
-  private ApiResponseDto successResponse;
+  private ApiResponseDto apiResponseDto;
 
   /**
    * Initializes a default SuccessResponseDTO before each test.
@@ -21,7 +22,7 @@ public class SuccessResponseDtoTest {
   @BeforeEach
   public void setUp() {
 
-    successResponse = new ApiResponseDto(true, "Task is successful");
+    apiResponseDto = new ApiResponseDto(true, "Task is successful");
   }
 
   /**
@@ -29,7 +30,7 @@ public class SuccessResponseDtoTest {
    */
   @Test
   public void testSuccessResponseDTOConstructor() {
-    assertEquals("Task is successful", successResponse.getMessage());
+    assertEquals("Task is successful", apiResponseDto.getMessage());
   }
 
   /**
@@ -38,7 +39,7 @@ public class SuccessResponseDtoTest {
   @Test
   public void testSuccess() {
 
-    assertTrue(successResponse.isSuccess());
+    assertTrue(apiResponseDto.isSuccess());
   }
 
   /**
@@ -47,7 +48,7 @@ public class SuccessResponseDtoTest {
   @Test
   public void testMessage() {
 
-    assertEquals("Task is successful", successResponse.getMessage());
+    assertEquals("Task is successful", apiResponseDto.getMessage());
   }
 
   /**
@@ -56,8 +57,8 @@ public class SuccessResponseDtoTest {
   @Test
   public void testEqualsAndHashCode() {
     ApiResponseDto another = new ApiResponseDto(true, "Task is successful");
-    assertEquals(successResponse, another);
-    assertEquals(successResponse.hashCode(), another.hashCode());
+    assertEquals(apiResponseDto, another);
+    assertEquals(apiResponseDto.hashCode(), another.hashCode());
   }
 
   /**
@@ -65,7 +66,7 @@ public class SuccessResponseDtoTest {
    */
   @Test
   public void testToString() {
-    String expected = "SuccessResponseDto(success=true, message=Task is successful)";
-    assertEquals(expected, successResponse.toString());
+    String expected = "ApiResponseDto(success=true, message=Task is successful)";
+    assertEquals(expected, apiResponseDto.toString());
   }
 }
