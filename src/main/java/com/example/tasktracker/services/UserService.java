@@ -1,6 +1,8 @@
 package com.example.tasktracker.services;
 
-import com.example.tasktracker.entities.User;
+
+import com.example.tasktracker.dtos.in.UserRequestDto;
+import com.example.tasktracker.dtos.out.ApiResponseDto;
 
 /**
  * Service interface for managing user-related operations in the Task Tracker application.
@@ -17,27 +19,15 @@ import com.example.tasktracker.entities.User;
 public interface UserService {
 
   /**
-   * Retrieves a user by their email and password.
-   *
-   * @param email the email of the user
-   * @param password the password of the user
-   * @return the {@link User} if found, otherwise {@code null}
+   * Register a new user based on the provided registration request.
+   * @param userRequestDto containing user details
+   * @return the SuccessResponse
    */
-  User getUserByEmailAndPassword(String email, String password);
-
+  ApiResponseDto registerUser(UserRequestDto userRequestDto);
   /**
-   * Retrieves a user by their unique ID.
-   *
-   * @param id the ID of the user
-   * @return the {@link User} with the given ID, otherwise {@code null}
+   * Login user based on the provided Login request.
+   * @param userRequestDto containing user details
+   * @return the SuccessResponse
    */
-  User getById(Long id);
-
-  /**
-   * Saves or updates the given user data in the data source.
-   *
-   * @param user the user to store
-   * @return the persisted {@link User} entity
-   */
-  User storeUserData(User user);
+  ApiResponseDto loginUser(UserRequestDto userRequestDto);
 }

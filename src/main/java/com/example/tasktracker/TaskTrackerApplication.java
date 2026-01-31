@@ -22,6 +22,7 @@ public final class TaskTrackerApplication {
    */
 
   public static void main(final String[] args) {
+
     SpringApplication.run(TaskTrackerApplication.class, args);
   }
 }

@@ -1,8 +1,10 @@
 package com.example.tasktracker.services;
 
+import com.example.tasktracker.dtos.in.TaskRequestDto;
+import com.example.tasktracker.dtos.out.PaginatedTaskResponseDto;
+import com.example.tasktracker.dtos.out.ApiResponseDto;
 import com.example.tasktracker.entities.Task;
-import com.example.tasktracker.entities.User;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for managing tasks in the Task Tracker application.
@@ -12,37 +14,33 @@ import java.util.List;
 public interface TaskService {
 
   /**
-   * Creates and saves a new task.
-   *
-   * @param task the task to create
-   * @param userId the user id who owns the task
-   * @return the saved {@link Task}
+   * Add a new task based on the provided user request.
+   * @param request containing task details
+   * @return the SuccessResponse
    */
-  Task createTask(Task task, Long userId);
-
+  ApiResponseDto addTask(TaskRequestDto request);
   /**
-   * Retrieves all tasks belonging to a specific user.
+   * Marks a task as completed.
    *
-   * @param userId the user whose tasks to retrieve
-   * @return list of tasks belonging to the user
+   * @param task of the task to be marked complete.
+   * @return SuccessResponseDTO indicating success status and message.
    */
-  List<Task> getTasksByUser(Long userId);
-
+  ApiResponseDto markTaskAsComplete(Task task);
   /**
-   * Retrieves a task by its unique ID and then mark its taskStatus as completed.
+   * Deletes a task based on the provided task ID.
    *
-   * @param taskId the ID of the task
-   * @param userId the ID of the user
-   * @return the {@link Task} if found, otherwise {@code null}
+   * @param taskId ID of the task to be deleted.
+   * @return SuccessResponseDTO indicating success status and message.
    */
-  Task markTaskAsCompleted(Long taskId, Long userId);
-
+  ApiResponseDto deleteTask(Long taskId);
   /**
-   * Retrieves a task by its unique ID and then delete that task.
+   * Retrieves a paginated list of tasks for a specific user, optionally filtered by due date and status.
    *
-   * @param userId the ID of the user
-   * @param taskId the ID of the task
-   * @return the {@link Task} if found, otherwise {@code null}
+   * @param userId   ID of the user whose tasks are to be retrieved
+   * @param pageable Pagination information
+   * @param dueDate  Optional due date filter in format yyyy-MM-dd (can be null)
+   * @param status   Optional task status filter (e.g., PENDING, COMPLETE) (can be null)
+   * @return a {@link PaginatedTaskResponseDto} containing the tasks and pagination details
    */
-  boolean deleteTaskByUser(Long userId, Long taskId);
+  PaginatedTaskResponseDto getTasksByUser(Long userId, Pageable pageable, String dueDate, String status);
 }

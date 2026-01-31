@@ -12,12 +12,9 @@ import jakarta.persistence.PrePersist;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * Entity representing a task in the system.
@@ -35,53 +32,53 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@ToString
+@EqualsAndHashCode
 public class Task {
 
-  /** Unique identifier for the task. */
+  /**
+   * Task ID.
+   */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
-
-  /** Title of the task (cannot be null). */
-  @Column(nullable = false)
+  private Long taskId;
+  /**
+   * Task Title.
+   */
+  @Column(name = "title", unique = true)
   private String title;
-
-  /** Detailed description of the task. */
+  /**
+   * Task Description.
+   */
+  @Column(name = "description")
   private String description;
-
-  /** The date by which the task should be completed. */
-  private LocalDate dueDate;
-
-  /** Current status of the task (e.g., PENDING, COMPLETED). */
+  /**
+   * Current Status of Task.
+   */
   @Enumerated(EnumType.STRING)
   private TaskStatus status = TaskStatus.PENDING;
-
-  /** The user to whom this task belongs. */
-  @Column(name = "user_id", nullable = false)
-  private Long userId;
-
-  /** Timestamp indicating when the task was created. */
-  private LocalDateTime createdAt = LocalDateTime.now();
-
   /**
-   * Sets default values before the entity is persisted.
-   *
-   * <p>This method ensures that the task status is set to {@code PENDING} and the
-   * creation timestamp is set to the current time if they are not already initialized.</p>
-   *
-   * <p>Annotated with {@link PrePersist}, this method is automatically called
-   * by the JPA provider before the entity is inserted into the database.</p>
+   * Each task belongs to a user.
+   */
+  @Column(name = "userId")
+  private Long  userId;
+  /**
+   * Task DueDate.
+   */
+  @Column(name = "dueDate")
+  private LocalDate dueDate;
+  /**
+   * Task creation time.
+   */
+  @Column(name = "created_at", updatable = false)
+  private LocalDateTime createdAt;
+  /**
+   *  * This ensures that the 'createdAt' timestamp is automatically set when a new entity is created.
    */
   @PrePersist
-  public void ensureDefaultStatus() {
-    if (status == null) {
-      status = TaskStatus.PENDING;
-    }
+  public void prePersist() {
+    this.createdAt = LocalDateTime.now();
 
-    if (createdAt == null) {
-      createdAt = LocalDateTime.now();
-    }
   }
 
 }

@@ -1,16 +1,15 @@
 package com.example.tasktracker.entities;
 
+import com.example.tasktracker.constants.NumericConstants;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
+import java.util.Objects;
 
 
 /**
@@ -21,36 +20,54 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@ToString
+@EqualsAndHashCode
 @Entity
 @Table(name = "users")
-public class User {
+public class User
+{
 
-  /** Maximum length of the name field. */
-  public static final int NAME_MAX_LENGTH = 100;
 
-  /** Maximum length of the email field. */
-  public static final int EMAIL_MAX_LENGTH = 150;
 
-  /** Maximum length of the password field. */
-  public static final int PASSWORD_MAX_LENGTH = 255;
-
-  /** Unique identifier for the user. */
+  /**
+   * Unique identifier for the user.
+   */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private Long userId;
 
-  /** Name of the user. */
-  @Column(name = "name", nullable = false, length = NAME_MAX_LENGTH)
+  /**
+   * Name of the user.
+   */
+  @Column(name = "name", nullable = false, length = NumericConstants.NAME_MAX_LENGTH)
   private String name;
 
-  /** Email of the user (must be unique). */
-  @Column(name = "email", unique = true, nullable = false, length = EMAIL_MAX_LENGTH)
+  /**
+   * Email of the user (must be unique).
+   */
+  @Column(name = "email", unique = true, nullable = false, length = NumericConstants.EMAIL_MAX_LENGTH)
   private String email;
 
-  /** Encrypted password of the user. */
-  @Column(nullable = false, length = PASSWORD_MAX_LENGTH)
+  /**
+   * Encrypted password of the user.
+   */
+  @Column(nullable = false)
   private String password;
 
+
+  /**
+   * User entity constructor
+   *
+   * @param id       the unique identifier of the user
+   * @param email    the email address of the user
+   * @param password the password for the user
+   *
+   */
+  public User(long id, String name, String email, String password) {
+    super();
+    this.name = name;
+    this.email = email;
+    this.password = password;
+  }
 
 }

@@ -26,15 +26,13 @@ public class SecurityConfig {
    * @throws Exception If an error occurs during configuration
    */
   @Bean
-  SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
     return http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/user/register", "/user/login").permitAll()
-                    .requestMatchers("/task/{userId}/addTask", "/task/{userId}/getTasksByUser",
-                            "/task/complete/{taskId}/{userId}",
-                            "/task/{userId}/deleteTask/{taskId}")
-                    .permitAll()
+                    .requestMatchers("/api/user/register", "/api/user/login",
+                            "/api/task/addTask", "/api/task/*/user/*/completeTask",
+                            "/api/task/*/user/*/deleteTask", "/api/task/user/*/getTasksByUser").permitAll()
                     .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -47,7 +45,7 @@ public class SecurityConfig {
    * @return BCryptPasswordEncoder object
    */
   @Bean
-  PasswordEncoder passwordEncoder() {
+  public static PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 }
